@@ -1,25 +1,72 @@
 @import "tailwindcss";
 
 :root {
-  --background: #fff7e9;
-  --foreground: #252525;
+  --background: #F5F1E8;
+  --foreground: #1A1A1A;
+  --accent: #8C7A6B;
+  --muted: #6B6B6B;
+}
+
+html {
+  scroll-behavior: smooth;
 }
 
 body {
   background: var(--background);
   color: var(--foreground);
+  font-family: 'Inter', sans-serif;
+  overflow-x: hidden;
 }
 
-.text-inverse {
+h1, h2, h3, h4, h5, h6 {
+  font-family: 'IBM Plex Mono', monospace;
+}
+
+.font-mono {
+  font-family: 'IBM Plex Mono', monospace;
+}
+
+.font-serif {
+  font-family: 'Newsreader', serif;
+}
+
+.font-body {
+  font-family: 'Inter', sans-serif;
+}
+
+::selection {
+  background: var(--foreground);
   color: var(--background);
 }
 
-.bg-inverse {
-  background: var(--background);
+/* Scattered float animation for chaos elements */
+@keyframes float-chaos {
+  0%, 100% { transform: translate(0, 0) rotate(var(--rotate)); }
+  25% { transform: translate(3px, -5px) rotate(calc(var(--rotate) + 1deg)); }
+  50% { transform: translate(-2px, 3px) rotate(calc(var(--rotate) - 0.5deg)); }
+  75% { transform: translate(4px, 2px) rotate(calc(var(--rotate) + 0.5deg)); }
 }
 
-.bg-blur {
-  background: var(--background);
-  backdrop-filter: blur(10px);
+.animate-chaos {
+  animation: float-chaos 6s ease-in-out infinite;
 }
 
+/* Pulse for live indicators */
+@keyframes pulse-dot {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.3; }
+}
+
+.animate-pulse-dot {
+  animation: pulse-dot 2s ease-in-out infinite;
+}
+
+/* Marquee for testimonials */
+@keyframes marquee-left {
+  from { transform: translateX(0); }
+  to { transform: translateX(-50%); }
+}
+
+.animate-marquee-left {
+  animation: marquee-left 30s linear infinite;
+}

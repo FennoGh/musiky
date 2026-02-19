@@ -6,56 +6,55 @@ import { motion } from 'framer-motion'
 const plans = [
     {
         name: 'Starter',
-        description: 'Para artistas independientes que empiezan.',
+        description: 'For independent artists getting started.',
         price: { monthly: 0, yearly: 0 },
         features: [
-            '1 proyecto activo',
-            'Hasta 2 colaboradores',
-            'Distribución a +150 plataformas',
-            'Splits automáticos',
-            'Analytics básicos',
+            '1 active project',
+            'Up to 2 collaborators',
+            'Distribution to 150+ platforms',
+            'Automatic splits',
+            'Basic analytics',
         ],
         limitations: [
-            'Sin contratos digitales',
-            'Sin gestión de gastos',
+            'No digital contracts',
+            'No expense management',
         ],
-        cta: 'Empezar gratis',
+        cta: 'Start free',
         highlighted: false,
     },
     {
         name: 'Pro',
-        description: 'Para artistas y productores serios.',
+        description: 'For serious artists and producers.',
         price: { monthly: 9.99, yearly: 7.99 },
         features: [
-            'Proyectos ilimitados',
-            'Hasta 10 colaboradores por proyecto',
-            'Distribución a +150 plataformas',
-            'Splits automáticos',
-            'Contratos digitales',
-            'Gestión de gastos completa',
-            'Analytics avanzados',
-            'Soporte prioritario',
+            'Unlimited projects',
+            'Up to 10 collaborators per project',
+            'Distribution to 150+ platforms',
+            'Automatic splits & contracts',
+            'Full expense management',
+            'Advanced analytics',
+            'Priority support',
         ],
         limitations: [],
-        cta: 'Comenzar prueba gratis',
+        cta: 'Start free trial',
         highlighted: true,
-        badge: 'Más popular',
+        badge: 'Most popular',
     },
     {
         name: 'Team',
-        description: 'Para sellos y equipos profesionales.',
+        description: 'For labels and professional teams.',
         price: { monthly: 29.99, yearly: 24.99 },
         features: [
-            'Todo lo de Pro',
-            'Colaboradores ilimitados',
-            'Múltiples administradores',
+            'Everything in Pro',
+            'Unlimited collaborators',
+            'Multiple admins',
             'API access',
-            'Reportes personalizados',
-            'Onboarding dedicado',
+            'Custom reports',
+            'Dedicated onboarding',
             'Account manager',
         ],
         limitations: [],
-        cta: 'Contactar ventas',
+        cta: 'Contact sales',
         highlighted: false,
     },
 ]
@@ -64,152 +63,159 @@ export default function Pricing() {
     const [isYearly, setIsYearly] = useState(true)
 
     return (
-        <section id="precios" className="py-24 md:py-32 px-6 md:px-12 lg:px-48 bg-[#252525] text-white">
-            <div className="max-w-6xl mx-auto">
-                {/* Header */}
-                <div className="text-center mb-16">
-                    <p className="text-sm tracking-widest uppercase mb-4 opacity-50">Precios</p>
-                    <h2 className="text-4xl md:text-5xl font-bold tracking-tight mb-4">
-                        Simple y transparente.
-                    </h2>
-                    <p className="text-lg opacity-60 max-w-xl mx-auto">
-                        Sin comisiones ocultas sobre tus regalías. Paga solo por las funcionalidades que necesitas.
-                    </p>
+        <section id="precios" className="py-24 md:py-32 px-6 md:px-12 lg:px-24 bg-[#1A1A1A] relative overflow-hidden">
+            {/* Giant background text */}
+            <span className="absolute -right-[5%] top-[10%] font-mono text-[25vw] font-bold leading-none text-[#F5F1E8]/[0.02] select-none pointer-events-none">
+                $
+            </span>
 
-                    {/* Toggle */}
-                    <div className="flex items-center justify-center gap-4 mt-8">
-                        <span className={`text-sm transition-opacity ${!isYearly ? 'opacity-100' : 'opacity-50'}`}>
-                            Mensual
-                        </span>
-                        <button
-                            onClick={() => setIsYearly(!isYearly)}
-                            className="relative w-14 h-7 bg-white/20 rounded-full transition-colors"
-                        >
-                            <motion.div
-                                className="absolute top-1 w-5 h-5 bg-white rounded-full"
-                                animate={{ left: isYearly ? '32px' : '4px' }}
-                                transition={{ type: 'spring', stiffness: 500, damping: 30 }}
-                            />
-                        </button>
-                        <span className={`text-sm transition-opacity flex items-center gap-2 ${isYearly ? 'opacity-100' : 'opacity-50'}`}>
-                            Anual
-                            <span className="px-2 py-0.5 bg-green-500/20 text-green-400 text-xs rounded-full">
-                                -20%
-                            </span>
-                        </span>
+            <div className="max-w-7xl mx-auto relative z-10">
+                <motion.div
+                    initial={{ opacity: 0, y: 20 }}
+                    whileInView={{ opacity: 1, y: 0 }}
+                    viewport={{ once: true }}
+                    transition={{ duration: 0.6 }}
+                    className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-16"
+                >
+                    <div>
+                        <p className="font-mono text-xs tracking-[0.3em] uppercase text-[#F5F1E8]/30 mb-4">Pricing</p>
+                        <h2 className="text-4xl md:text-6xl font-bold tracking-tight text-[#F5F1E8] leading-[0.9]">
+                            Simple.<br />
+                            <span className="text-[#8C7A6B]">Transparent.</span>
+                        </h2>
                     </div>
-                </div>
+                    <div className="flex flex-col justify-end">
+                        <p className="text-lg text-[#F5F1E8]/50 leading-relaxed">
+                            No hidden fees on your royalties. You keep 100%.
+                            Pay only for the features you need.
+                        </p>
+
+                        {/* Toggle */}
+                        <div className="flex items-center gap-4 mt-6">
+                            <span className={`font-mono text-xs transition-colors ${!isYearly ? 'text-[#F5F1E8]' : 'text-[#F5F1E8]/30'}`}>
+                                Monthly
+                            </span>
+                            <button
+                                onClick={() => setIsYearly(!isYearly)}
+                                className={`relative w-12 h-6 transition-colors ${isYearly ? 'bg-[#8C7A6B]' : 'bg-[#F5F1E8]/20'}`}
+                            >
+                                <motion.div
+                                    className="absolute top-1 w-4 h-4 bg-[#F5F1E8]"
+                                    animate={{ left: isYearly ? '28px' : '4px' }}
+                                    transition={{ type: 'spring', stiffness: 500, damping: 30 }}
+                                />
+                            </button>
+                            <span className={`font-mono text-xs transition-colors flex items-center gap-2 ${isYearly ? 'text-[#F5F1E8]' : 'text-[#F5F1E8]/30'}`}>
+                                Yearly
+                                <span className="font-mono text-[10px] px-2 py-0.5 bg-[#8C7A6B] text-[#F5F1E8]">-20%</span>
+                            </span>
+                        </div>
+                    </div>
+                </motion.div>
 
                 {/* Plans */}
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-[1px] bg-[#F5F1E8]/[0.06]">
                     {plans.map((plan, index) => (
                         <motion.div
                             key={plan.name}
                             initial={{ opacity: 0, y: 20 }}
                             whileInView={{ opacity: 1, y: 0 }}
                             viewport={{ once: true }}
-                            transition={{ delay: index * 0.1 }}
-                            className={`relative rounded-2xl p-8 flex flex-col ${
+                            transition={{ delay: index * 0.1, duration: 0.5 }}
+                            className={`flex flex-col relative overflow-hidden ${
                                 plan.highlighted
-                                    ? 'bg-[#fff7e9] text-[#252525] scale-105 shadow-2xl'
-                                    : 'bg-white/5 border border-white/10'
+                                    ? 'bg-[#F5F1E8] text-[#1A1A1A]'
+                                    : 'bg-[#1A1A1A]'
                             }`}
                         >
-                            {plan.badge && (
-                                <div className="absolute -top-3 left-1/2 -translate-x-1/2">
-                                    <span className="px-3 py-1 bg-[#252525] text-[#fff7e9] text-xs font-medium rounded-full">
+                            <div className="p-8 md:p-10 flex flex-col h-full">
+                                {plan.badge && (
+                                    <span className="font-mono text-[10px] tracking-wider uppercase text-[#8C7A6B] mb-4">
                                         {plan.badge}
                                     </span>
+                                )}
+
+                                <div className="mb-8">
+                                    <h3 className={`font-mono text-xl font-bold mb-2 ${plan.highlighted ? '' : 'text-[#F5F1E8]'}`}>
+                                        {plan.name}
+                                    </h3>
+                                    <p className={`text-sm ${plan.highlighted ? 'text-[#4A4A4A]' : 'text-[#F5F1E8]/40'}`}>
+                                        {plan.description}
+                                    </p>
                                 </div>
-                            )}
 
-                            <div className="mb-6">
-                                <h3 className="text-xl font-semibold mb-2">{plan.name}</h3>
-                                <p className={`text-sm ${plan.highlighted ? 'opacity-60' : 'opacity-50'}`}>
-                                    {plan.description}
-                                </p>
-                            </div>
-
-                            <div className="mb-6">
-                                <div className="flex items-baseline gap-1">
-                                    <span className="text-4xl font-bold">
-                                        €{isYearly ? plan.price.yearly : plan.price.monthly}
-                                    </span>
-                                    {plan.price.monthly > 0 && (
-                                        <span className={`text-sm ${plan.highlighted ? 'opacity-60' : 'opacity-50'}`}>
-                                            /mes
+                                {/* Price */}
+                                <div className="mb-8">
+                                    <div className="flex items-baseline gap-1">
+                                        <span className={`font-mono text-5xl md:text-6xl font-bold leading-none ${plan.highlighted ? '' : 'text-[#F5F1E8]'}`}>
+                                            ${isYearly ? plan.price.yearly : plan.price.monthly}
                                         </span>
+                                        {plan.price.monthly > 0 && (
+                                            <span className={`text-sm ${plan.highlighted ? 'text-[#4A4A4A]' : 'text-[#F5F1E8]/30'}`}>/mo</span>
+                                        )}
+                                    </div>
+                                    {plan.price.monthly > 0 && isYearly && (
+                                        <p className={`font-mono text-[10px] mt-2 ${plan.highlighted ? 'text-[#4A4A4A]' : 'text-[#F5F1E8]/20'}`}>
+                                            Billed annually (${(plan.price.yearly * 12).toFixed(0)}/yr)
+                                        </p>
+                                    )}
+                                    {plan.price.monthly === 0 && (
+                                        <p className={`font-mono text-[10px] mt-2 ${plan.highlighted ? 'text-[#4A4A4A]' : 'text-[#F5F1E8]/20'}`}>
+                                            Free forever
+                                        </p>
                                     )}
                                 </div>
-                                {plan.price.monthly > 0 && isYearly && (
-                                    <p className={`text-xs mt-1 ${plan.highlighted ? 'opacity-50' : 'opacity-40'}`}>
-                                        Facturado anualmente (€{(plan.price.yearly * 12).toFixed(0)}/año)
-                                    </p>
-                                )}
-                                {plan.price.monthly === 0 && (
-                                    <p className={`text-xs mt-1 ${plan.highlighted ? 'opacity-50' : 'opacity-40'}`}>
-                                        Gratis para siempre
-                                    </p>
-                                )}
-                            </div>
 
-                            <button
-                                className={`w-full py-3 rounded-lg font-medium text-sm transition-all mb-8 ${
-                                    plan.highlighted
-                                        ? 'bg-[#252525] text-[#fff7e9] hover:bg-[#353535]'
-                                        : 'bg-white text-[#252525] hover:bg-white/90'
-                                }`}
-                            >
-                                {plan.cta}
-                            </button>
+                                <button
+                                    className={`w-full py-4 text-sm font-medium tracking-wide transition-colors duration-200 mb-8 ${
+                                        plan.highlighted
+                                            ? 'bg-[#1A1A1A] text-[#F5F1E8] hover:bg-[#8C7A6B]'
+                                            : 'bg-[#F5F1E8] text-[#1A1A1A] hover:bg-[#8C7A6B] hover:text-[#F5F1E8]'
+                                    }`}
+                                >
+                                    {plan.cta}
+                                </button>
 
-                            <div className="space-y-3 flex-1">
-                                {plan.features.map((feature, i) => (
-                                    <div key={i} className="flex items-start gap-3">
-                                        <svg
-                                            className={`w-5 h-5 shrink-0 ${plan.highlighted ? 'text-green-600' : 'text-green-400'}`}
-                                            fill="none"
-                                            viewBox="0 0 24 24"
-                                            stroke="currentColor"
-                                        >
-                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                                        </svg>
-                                        <span className={`text-sm ${plan.highlighted ? 'opacity-80' : 'opacity-70'}`}>
-                                            {feature}
-                                        </span>
-                                    </div>
-                                ))}
-                                {plan.limitations.map((limitation, i) => (
-                                    <div key={i} className="flex items-start gap-3">
-                                        <svg
-                                            className="w-5 h-5 shrink-0 opacity-30"
-                                            fill="none"
-                                            viewBox="0 0 24 24"
-                                            stroke="currentColor"
-                                        >
-                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                                        </svg>
-                                        <span className="text-sm opacity-40">
-                                            {limitation}
-                                        </span>
-                                    </div>
-                                ))}
+                                <div className="space-y-3 flex-1">
+                                    {plan.features.map((feature, i) => (
+                                        <div key={i} className="flex items-start gap-3">
+                                            <span className="w-1.5 h-1.5 bg-[#8C7A6B] mt-1.5 shrink-0" />
+                                            <span className={`text-sm ${plan.highlighted ? 'text-[#4A4A4A]' : 'text-[#F5F1E8]/50'}`}>
+                                                {feature}
+                                            </span>
+                                        </div>
+                                    ))}
+                                    {plan.limitations.map((limitation, i) => (
+                                        <div key={i} className="flex items-start gap-3">
+                                            <span className={`w-1.5 h-1.5 mt-1.5 shrink-0 ${plan.highlighted ? 'bg-[#1A1A1A]/15' : 'bg-[#F5F1E8]/10'}`} />
+                                            <span className={`text-sm line-through ${plan.highlighted ? 'text-[#4A4A4A]/30' : 'text-[#F5F1E8]/15'}`}>
+                                                {limitation}
+                                            </span>
+                                        </div>
+                                    ))}
+                                </div>
                             </div>
                         </motion.div>
                     ))}
                 </div>
 
-                {/* Bottom note */}
-                <div className="mt-16 text-center">
-                    <p className="text-sm opacity-50 mb-4">
-                        Todos los planes incluyen distribución a +150 plataformas sin comisiones adicionales.
-                    </p>
-                    <div className="flex items-center justify-center gap-8 opacity-40">
-                        <span className="text-xs">Sin compromiso</span>
-                        <span className="text-xs">Cancela cuando quieras</span>
-                        <span className="text-xs">100% de tus regalías</span>
+                {/* Bottom trust bar */}
+                <motion.div
+                    initial={{ opacity: 0 }}
+                    whileInView={{ opacity: 1 }}
+                    viewport={{ once: true }}
+                    transition={{ delay: 0.3, duration: 0.5 }}
+                    className="mt-12 pt-8 border-t border-[#F5F1E8]/10 flex flex-col md:flex-row md:items-center md:justify-between gap-4"
+                >
+                    <div className="flex items-center gap-8 text-[#F5F1E8]/20">
+                        <span className="font-mono text-[10px] tracking-wider uppercase">No commitment</span>
+                        <span className="font-mono text-[10px] tracking-wider uppercase">Cancel anytime</span>
+                        <span className="font-mono text-[10px] tracking-wider uppercase">100% your royalties</span>
                     </div>
-                </div>
+                    <p className="font-mono text-[10px] text-[#F5F1E8]/20">
+                        All prices in USD. Taxes may apply.
+                    </p>
+                </motion.div>
             </div>
         </section>
     )

@@ -1,84 +1,233 @@
+'use client'
+
+import { motion } from 'framer-motion'
+import { useMemo } from 'react'
+
+function SoundWave() {
+    const bars = useMemo(() => {
+        const result = []
+        for (let i = 0; i < 80; i++) {
+            const seed = Math.sin(i * 9301 + 49297) * 49297
+            const rand = seed - Math.floor(seed)
+            const h1 = 8 + rand * 92
+            const h2 = 5 + ((rand * 73 + 0.3) % 1) * 95
+            const h3 = 12 + ((rand * 47 + 0.7) % 1) * 88
+            const dur = 1.5 + rand * 2
+            result.push({ h1, h2, h3, dur })
+        }
+        return result
+    }, [])
+
+    return (
+        <div className="flex items-center justify-center gap-[2px] h-12 sm:h-16 opacity-[0.15] overflow-hidden">
+            {bars.map((bar, i) => (
+                <motion.div
+                    key={i}
+                    className="w-[1.5px] bg-[#8C7A6B] origin-center"
+                    initial={{ height: `${bar.h1}%` }}
+                    animate={{ height: [`${bar.h1}%`, `${bar.h2}%`, `${bar.h3}%`, `${bar.h1}%`] }}
+                    transition={{
+                        duration: bar.dur,
+                        repeat: Infinity,
+                        ease: 'easeInOut',
+                        delay: i * 0.03,
+                    }}
+                />
+            ))}
+        </div>
+    )
+}
+
+function NowPlaying() {
+    return (
+        <motion.div
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.6, delay: 1.3 }}
+            className="inline-flex items-center gap-3 sm:gap-4 px-4 sm:px-5 py-3 border border-[#1A1A1A]/[0.06] max-w-full"
+        >
+            {/* Mini equalizer */}
+            <div className="flex items-end gap-[2px] h-3 shrink-0">
+                {[0.6, 1, 0.4, 0.8, 0.5].map((scale, i) => (
+                    <motion.div
+                        key={i}
+                        className="w-[2px] bg-[#8C7A6B]"
+                        animate={{ height: ['40%', `${scale * 100}%`, '30%', `${scale * 80}%`] }}
+                        transition={{ duration: 0.6 + i * 0.1, repeat: Infinity, ease: 'easeInOut' }}
+                    />
+                ))}
+            </div>
+            <div className="min-w-0">
+                <p className="font-mono text-[9px] text-[#1A1A1A]/25 uppercase tracking-wider">Now playing</p>
+                <p className="font-mono text-xs text-[#1A1A1A]/70 truncate">Verano en Madrid <span className="text-[#1A1A1A]/25 hidden sm:inline">/ 4 collaborators</span></p>
+            </div>
+            <div className="hidden sm:flex items-center gap-2 ml-2 shrink-0">
+                <span className="font-mono text-[9px] text-[#1A1A1A]/20">2:18</span>
+                <div className="w-16 h-[1.5px] bg-[#1A1A1A]/[0.06]">
+                    <motion.div
+                        className="h-full bg-[#8C7A6B]/50"
+                        initial={{ width: '0%' }}
+                        animate={{ width: '62%' }}
+                        transition={{ duration: 2.5, delay: 1.5, ease: 'easeOut' }}
+                    />
+                </div>
+            </div>
+        </motion.div>
+    )
+}
 
 export default function Hero() {
     return (
-        <section className='min-h-screen pt-32 pb-10 md:pt-42 relative flex flex-col w-full overflow-hidden'>
-            {/* Imagen de fondo */}
-            <div className='absolute inset-0 bg-[url("../images/micro.jpg")] bg-cover bg-center brightness-[0.35] scale-105 -scale-x-100'></div>
+        <section className="flex flex-col justify-between pt-10 md:pt-20 pb-8 px-6 md:px-12 lg:px-24 relative overflow-hidden">
+            {/* Background watermark */}
+            <motion.span
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 0.025 }}
+                transition={{ duration: 2, delay: 0.5 }}
+                className="absolute -right-[8%] top-[8%] font-serif text-[42vw] italic font-normal leading-none select-none pointer-events-none"
+            >
+                M
+            </motion.span>
 
-            {/* Contenido principal */}
-            <div className="z-10 px-6 md:px-12 lg:px-48 w-full">
-                <h1 className="text-inverse text-6xl max-md:text-4xl font-bold tracking-tighter">
-                    Colabora. Distribuye.
-                </h1>
-                <h1 className="text-inverse text-6xl max-md:text-4xl font-bold tracking-tighter leading-snug">
-                    Cobra sin dramas.
-                </h1>
-                <p className="text-inverse mt-6 max-md:text-sm">
-                    La plataforma donde los equipos musicales gestionan proyectos, distribuyen su música y cobran automáticamente. Sin Excel, sin perseguir a nadie.
-                </p>
+            {/* Vertical side text */}
+            <motion.span
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ duration: 1, delay: 1.5 }}
+                className="absolute right-6 md:right-12 top-1/2 -translate-y-1/2 font-mono text-[9px] tracking-[0.5em] uppercase text-[#1A1A1A]/[0.08] [writing-mode:vertical-lr] select-none hidden lg:block"
+            >
+                Collaborate / Distribute / Get paid
+            </motion.span>
 
-                <div className="flex flex-col md:flex-row justify-center gap-4 md:gap-8 mt-10 md:mt-14 text-inverse">
-                    <article className="group relative w-full h-auto md:h-[200px] flex flex-col justify-center items-center bg-[#fff7e9]/10 backdrop-blur-sm rounded-2xl p-6 cursor-default transition-all duration-500 ease-out md:hover:bg-[#fff7e9]/20 md:hover:scale-[1.02] md:hover:shadow-2xl md:hover:shadow-black/20">
-                        <h2 className="font-medium text-xl md:text-2xl transition-all duration-300 ease-out md:group-hover:opacity-0 md:group-hover:scale-95">Proyectos colaborativos</h2>
+            {/* Subtle decorative line top-right */}
+            <motion.div
+                initial={{ scaleY: 0 }}
+                animate={{ scaleY: 1 }}
+                transition={{ duration: 1.2, delay: 0.8, ease: [0.22, 1, 0.36, 1] }}
+                className="absolute right-24 top-32 w-[1px] h-32 bg-[#1A1A1A]/[0.04] origin-top hidden lg:block"
+            />
 
-                        {/* Mobile: siempre visible */}
-                        <div className="md:hidden mt-4">
-                            <p className="text-sm">
-                                Crea proyectos, invita colaboradores y define porcentajes. Todos ven el progreso, los gastos y los ingresos en tiempo real.
-                            </p>
-                            <a href="#" className="block text-sm border-t border-gray-300 p-2 mt-4">Ver más →</a>
+            {/* Main content */}
+            <div className="flex-1 flex flex-col justify-center items-center relative z-10">
+                <div className="flex flex-col items-center text-center max-w-4xl">
+                    {/* Label */}
+                    <motion.p
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        transition={{ duration: 0.8, delay: 0.1 }}
+                        className="font-mono text-[10px] tracking-[0.3em] sm:tracking-[0.4em] uppercase text-[#1A1A1A]/25 mb-6 sm:mb-10"
+                    >
+                        For those who create together
+                    </motion.p>
+
+                    {/* Headline - mixed typography */}
+                    <div className="mb-6 sm:mb-10">
+                        <div className="overflow-hidden">
+                            <motion.h1
+                                initial={{ y: '100%' }}
+                                animate={{ y: 0 }}
+                                transition={{ duration: 1, delay: 0.2, ease: [0.22, 1, 0.36, 1] }}
+                                className="font-serif text-[11vw] md:text-[7vw] lg:text-[5.5vw] font-normal italic leading-[1] tracking-tight text-[#1A1A1A]"
+                            >
+                                Music made together,
+                            </motion.h1>
                         </div>
-
-                        {/* Desktop: hover */}
-                        <div className="hidden md:flex absolute inset-0 flex-col justify-between p-6 pointer-events-none group-hover:pointer-events-auto">
-                            <p className="text-base opacity-0 -translate-y-4 transition-all duration-500 ease-out group-hover:opacity-100 group-hover:translate-y-0 group-hover:delay-100">
-                                Crea proyectos, invita colaboradores y define porcentajes. Todos ven el progreso, los gastos y los ingresos en tiempo real.
-                            </p>
-                            <a href="#" className="text-base opacity-0 translate-y-4 transition-all duration-500 ease-out group-hover:opacity-100 group-hover:translate-y-0 group-hover:delay-200 border-t border-gray-300 p-2 text-left">Ver más →</a>
+                        <div className="overflow-hidden">
+                            <motion.h1
+                                initial={{ y: '100%' }}
+                                animate={{ y: 0 }}
+                                transition={{ duration: 1, delay: 0.35, ease: [0.22, 1, 0.36, 1] }}
+                                className="font-mono text-[11vw] md:text-[7vw] lg:text-[5.5vw] font-bold leading-[1] tracking-tighter text-[#1A1A1A]"
+                            >
+                                paid apart.
+                            </motion.h1>
                         </div>
-                    </article>
+                    </div>
 
-                    <article className="group relative w-full h-auto md:h-[200px] flex flex-col justify-center items-center bg-[#fff7e9]/10 backdrop-blur-sm rounded-2xl p-6 cursor-default transition-all duration-500 ease-out md:hover:bg-[#fff7e9]/20 md:hover:scale-[1.02] md:hover:shadow-2xl md:hover:shadow-black/20">
-                        <h2 className="font-medium text-xl md:text-2xl transition-all duration-300 ease-out md:group-hover:opacity-0 md:group-hover:scale-95">Finanzas transparentes</h2>
+                    {/* Sound wave */}
+                    <motion.div
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        transition={{ duration: 1.5, delay: 0.8 }}
+                        className="w-full max-w-md mb-10"
+                    >
+                        <SoundWave />
+                    </motion.div>
 
-                        {/* Mobile: siempre visible */}
-                        <div className="md:hidden mt-4">
-                            <p className="text-sm">
-                                Registra gastos, calcula el break-even y ve quién pagó qué. Cero sorpresas, cero discusiones sobre dinero.
-                            </p>
-                            <a href="#" className="block text-sm border-t border-gray-300 p-2 mt-4">Ver más →</a>
-                        </div>
+                    {/* Description */}
+                    <motion.p
+                        initial={{ opacity: 0, y: 10 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ duration: 0.6, delay: 1.0 }}
+                        className="max-w-md text-[#1A1A1A]/35 leading-relaxed mb-10"
+                    >
+                        Manage projects, distribute to 150+ platforms, split royalties
+                        automatically. The quiet engine behind music teams.
+                    </motion.p>
 
-                        {/* Desktop: hover */}
-                        <div className="hidden md:flex absolute inset-0 flex-col justify-between p-6 pointer-events-none group-hover:pointer-events-auto">
-                            <p className="text-base opacity-0 -translate-y-4 transition-all duration-500 ease-out group-hover:opacity-100 group-hover:translate-y-0 group-hover:delay-100">
-                                Registra gastos, calcula el break-even y ve quién pagó qué. Cero sorpresas, cero discusiones sobre dinero.
-                            </p>
-                            <a href="#" className="text-base opacity-0 translate-y-4 transition-all duration-500 ease-out group-hover:opacity-100 group-hover:translate-y-0 group-hover:delay-200 border-t border-gray-300 p-2 text-left">Ver más →</a>
-                        </div>
-                    </article>
+                    {/* CTAs */}
+                    <motion.div
+                        initial={{ opacity: 0, y: 10 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ duration: 0.5, delay: 1.15 }}
+                        className="flex flex-wrap justify-center gap-4 mb-8"
+                    >
+                        <a
+                            href="/register"
+                            className="px-8 py-3.5 bg-[#1A1A1A] text-[#F5F1E8] text-sm tracking-wide hover:bg-[#8C7A6B] transition-colors duration-300"
+                        >
+                            Start free
+                        </a>
+                        <a
+                            href="#como-funciona"
+                            className="px-8 py-3.5 border border-[#1A1A1A]/[0.08] text-sm tracking-wide text-[#1A1A1A]/50 hover:border-[#1A1A1A]/30 hover:text-[#1A1A1A] transition-all duration-300"
+                        >
+                            See how it works
+                        </a>
+                    </motion.div>
 
-                    <article className="group relative w-full h-auto md:h-[200px] flex flex-col justify-center items-center bg-[#fff7e9]/10 backdrop-blur-sm rounded-2xl p-6 cursor-default transition-all duration-500 ease-out md:hover:bg-[#fff7e9]/20 md:hover:scale-[1.02] md:hover:shadow-2xl md:hover:shadow-black/20">
-                        <h2 className="font-medium text-xl md:text-2xl transition-all duration-300 ease-out md:group-hover:opacity-0 md:group-hover:scale-95">Splits automáticos</h2>
-
-                        {/* Mobile: siempre visible */}
-                        <div className="md:hidden mt-4">
-                            <p className="text-sm">
-                                Firma contratos digitales, distribuye a +150 plataformas y cobra automáticamente tu porcentaje. Sin perseguir a nadie.
-                            </p>
-                            <a href="#" className="block text-sm border-t border-gray-300 p-2 mt-4">Ver más →</a>
-                        </div>
-
-                        {/* Desktop: hover */}
-                        <div className="hidden md:flex absolute inset-0 flex-col justify-between p-6 pointer-events-none group-hover:pointer-events-auto">
-                            <p className="text-base opacity-0 -translate-y-4 transition-all duration-500 ease-out group-hover:opacity-100 group-hover:translate-y-0 group-hover:delay-100">
-                                Firma contratos digitales, distribuye a +150 plataformas y cobra automáticamente tu porcentaje. Sin perseguir a nadie.
-                            </p>
-                            <a href="#" className="text-base opacity-0 translate-y-4 transition-all duration-500 ease-out group-hover:opacity-100 group-hover:translate-y-0 group-hover:delay-200 border-t border-gray-300 p-2 text-left">Ver más →</a>
-                        </div>
-                    </article>
+                    {/* Now Playing */}
+                    <NowPlaying />
                 </div>
             </div>
+
+            {/* Bottom bar */}
+            <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ duration: 0.6, delay: 1.6 }}
+                className="flex items-center justify-between pt-8 border-t border-[#1A1A1A]/[0.04] mt-16"
+            >
+                {/* Mobile stats */}
+                <div className="flex items-center gap-10 lg:hidden">
+                    {[
+                        { value: '150+', label: 'Platforms' },
+                        { value: '100%', label: 'Royalties' },
+                    ].map((stat, i) => (
+                        <div key={i}>
+                            <p className="font-mono text-lg font-bold text-[#1A1A1A]">{stat.value}</p>
+                            <p className="font-mono text-[9px] uppercase tracking-wider text-[#1A1A1A]/20 mt-0.5">{stat.label}</p>
+                        </div>
+                    ))}
+                </div>
+
+                {/* Desktop: copyright-style text */}
+                <p className="font-mono text-[9px] text-[#1A1A1A]/15 tracking-wider hidden lg:block">
+                    The platform for music teams
+                </p>
+
+                {/* Scroll */}
+                <div className="flex items-center gap-3">
+                    <motion.div
+                        animate={{ y: [0, 4, 0] }}
+                        transition={{ repeat: Infinity, duration: 2.5, ease: 'easeInOut' }}
+                        className="w-[1px] h-5 bg-[#1A1A1A]/[0.08]"
+                    />
+                    <span className="font-mono text-[9px] uppercase tracking-wider text-[#1A1A1A]/15 [writing-mode:vertical-lr]">
+                        Scroll
+                    </span>
+                </div>
+            </motion.div>
         </section>
     )
 }
