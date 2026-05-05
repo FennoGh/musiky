@@ -39,3 +39,32 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# runtime uploads (local dev)
+/api/uploads/
+.dev-mobile-last-ip
+
+# Python backend
+/api/.venv/
+__pycache__/
+*.py[cod]
+*.egg-info/
+
+# Android / Capacitor build artifacts
+/android/.gradle/
+/android/build/
+/android/app/build/
+/android/captures/
+/android/local.properties
+/android/.idea/
+/android/app/release/
+*.keystore
+
+# IDE / editor / agent metadata
+/.claude/
+/.idea/
+/.vscode/
+*.iml
+
+# Internal scratch / agent prompts (do not publish)
+/CLAUDE_CODE_PROMPT_*.md

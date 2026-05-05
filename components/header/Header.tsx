@@ -1,9 +1,11 @@
 'use client'
 
 import Link from 'next/link'
+import { usePathname } from 'next/navigation'
 import { useState, useEffect } from 'react'
 
 export default function Header() {
+    const pathname = usePathname()
     const [isScrolled, setIsScrolled] = useState(false)
     const [isMenuOpen, setIsMenuOpen] = useState(false)
 
@@ -14,6 +16,9 @@ export default function Header() {
         window.addEventListener('scroll', handleScroll)
         return () => window.removeEventListener('scroll', handleScroll)
     }, [])
+
+    // Dashboard renders its own sub-header — hide the marketing one there.
+    if (pathname?.startsWith('/dashboard')) return null
 
     return (
         <>

@@ -78,7 +78,7 @@ function NowPlaying() {
 
 export default function Hero() {
     return (
-        <section className="flex flex-col justify-between pt-10 md:pt-20 pb-8 px-6 md:px-12 lg:px-24 relative overflow-hidden">
+        <section className="flex flex-col justify-between pt-28 sm:pt-32 md:pt-40 pb-8 px-6 md:px-12 lg:px-24 relative overflow-hidden">
             {/* Background watermark */}
             <motion.span
                 initial={{ opacity: 0 }}

@@ -1,7 +1,9 @@
 'use client'
 
-import { useState } from 'react'
-import { motion } from 'framer-motion'
+import { useEffect, useState } from 'react'
+import { motion, AnimatePresence } from 'framer-motion'
+
+const SALES_EMAIL = 'sales@musiky.dev'
 
 const plans = [
     {
@@ -20,6 +22,7 @@ const plans = [
             'No expense management',
         ],
         cta: 'Start free',
+        contactSales: false,
         highlighted: false,
     },
     {
@@ -36,7 +39,8 @@ const plans = [
             'Priority support',
         ],
         limitations: [],
-        cta: 'Start free trial',
+        cta: 'Contact sales',
+        contactSales: true,
         highlighted: true,
         badge: 'Most popular',
     },
@@ -55,12 +59,34 @@ const plans = [
         ],
         limitations: [],
         cta: 'Contact sales',
+        contactSales: true,
         highlighted: false,
     },
 ]
 
 export default function Pricing() {
     const [isYearly, setIsYearly] = useState(true)
+    const [salesOpen, setSalesOpen] = useState(false)
+    const [copied, setCopied] = useState(false)
+
+    useEffect(() => {
+        if (!salesOpen) return
+        const onKey = (e: KeyboardEvent) => {
+            if (e.key === 'Escape') setSalesOpen(false)
+        }
+        window.addEventListener('keydown', onKey)
+        return () => window.removeEventListener('keydown', onKey)
+    }, [salesOpen])
+
+    async function copyEmail() {
+        try {
+            await navigator.clipboard.writeText(SALES_EMAIL)
+            setCopied(true)
+            setTimeout(() => setCopied(false), 1500)
+        } catch {
+            // ignore — user can still read & copy manually
+        }
+    }
 
     return (
         <section id="precios" className="py-24 md:py-32 px-6 md:px-12 lg:px-24 bg-[#1A1A1A] relative overflow-hidden">
@@ -167,6 +193,9 @@ export default function Pricing() {
                                 </div>
 
                                 <button
+                                    onClick={() => {
+                                        if (plan.contactSales) setSalesOpen(true)
+                                    }}
                                     className={`w-full py-4 text-sm font-medium tracking-wide transition-colors duration-200 mb-8 ${
                                         plan.highlighted
                                             ? 'bg-[#1A1A1A] text-[#F5F1E8] hover:bg-[#8C7A6B]'
@@ -217,6 +246,73 @@ export default function Pricing() {
                     </p>
                 </motion.div>
             </div>
+
+            <AnimatePresence>
+                {salesOpen && (
+                    <motion.div
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        exit={{ opacity: 0 }}
+                        transition={{ duration: 0.2 }}
+                        className="fixed inset-0 z-50 flex items-center justify-center px-6"
+                        onClick={() => setSalesOpen(false)}
+                        role="dialog"
+                        aria-modal="true"
+                        aria-labelledby="sales-modal-title"
+                    >
+                        <div className="absolute inset-0 bg-[#1A1A1A]/80 backdrop-blur-sm" />
+                        <motion.div
+                            initial={{ opacity: 0, y: 16, scale: 0.98 }}
+                            animate={{ opacity: 1, y: 0, scale: 1 }}
+                            exit={{ opacity: 0, y: 16, scale: 0.98 }}
+                            transition={{ duration: 0.25, ease: [0.22, 1, 0.36, 1] }}
+                            onClick={(e) => e.stopPropagation()}
+                            className="relative w-full max-w-md bg-[#F5F1E8] text-[#1A1A1A] p-8 md:p-10"
+                        >
+                            <button
+                                onClick={() => setSalesOpen(false)}
+                                aria-label="Close"
+                                className="absolute top-4 right-4 font-mono text-[10px] tracking-[0.2em] uppercase text-[#1A1A1A]/45 hover:text-[#1A1A1A] transition-colors"
+                            >
+                                ✕ Close
+                            </button>
+
+                            <p className="font-mono text-[10px] tracking-[0.3em] uppercase text-[#1A1A1A]/55 mb-3">
+                                Talk to us
+                            </p>
+                            <h3
+                                id="sales-modal-title"
+                                className="font-mono text-2xl md:text-3xl font-bold tracking-tight mb-4"
+                            >
+                                Contact sales
+                            </h3>
+                            <p className="text-sm text-[#1A1A1A]/65 leading-relaxed mb-6">
+                                Reach out to our sales team to upgrade your plan, ask about volume
+                                pricing, or discuss a custom setup for your label. We typically
+                                reply within one business day.
+                            </p>
+
+                            <div className="border border-[#1A1A1A]/15 px-4 py-3 mb-3 flex items-center justify-between gap-4">
+                                <a
+                                    href={`mailto:${SALES_EMAIL}?subject=Musiky%20plan%20upgrade`}
+                                    className="font-mono text-sm text-[#1A1A1A] truncate hover:text-[#8C7A6B] transition-colors"
+                                >
+                                    {SALES_EMAIL}
+                                </a>
+                                <button
+                                    onClick={copyEmail}
+                                    className="font-mono text-[10px] tracking-[0.2em] uppercase text-[#1A1A1A]/55 hover:text-[#1A1A1A] transition-colors shrink-0"
+                                >
+                                    {copied ? 'Copied' : 'Copy'}
+                                </button>
+                            </div>
+                            <p className="font-mono text-[10px] tracking-wider text-[#1A1A1A]/40">
+                                Click the address to open your email client.
+                            </p>
+                        </motion.div>
+                    </motion.div>
+                )}
+            </AnimatePresence>
         </section>
     )
 }

@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">Musiky</string>
+    <string name="title_activity_main">Musiky</string>
+    <string name="package_name">dev.musiky.app</string>
+    <string name="custom_url_scheme">dev.musiky.app</string>
+</resources>
