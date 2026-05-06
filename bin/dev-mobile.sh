@@ -34,10 +34,10 @@ if [[ "$LAST_IP" == "$IP" && -z "${FORCE:-}" && -f "android/app/build/outputs/ap
 fi
 
 # 2) Frontend env (read at Next startup; baked into the JS bundle).
-cat > .env.local <<EOF
+cat > frontend/.env.local <<EOF
 NEXT_PUBLIC_API_BASE=http://${IP}:8000
 EOF
-echo "==> Wrote .env.local with NEXT_PUBLIC_API_BASE=http://${IP}:8000"
+echo "==> Wrote frontend/.env.local with NEXT_PUBLIC_API_BASE=http://${IP}:8000"
 
 # 3) Capacitor config (read at `cap sync`; baked into the APK).
 cat > capacitor.config.ts <<EOF
@@ -48,7 +48,7 @@ import type { CapacitorConfig } from "@capacitor/cli";
 const config: CapacitorConfig = {
   appId: "dev.musiky.app",
   appName: "Musiky",
-  webDir: "public",
+  webDir: "frontend/public",
   // Match the WebView scheme to the actual URL so a clear-data wipe doesn't
   // leave behind an https://localhost/ origin in the navigation history.
   server: {
@@ -85,24 +85,20 @@ cat > android/app/src/main/res/xml/network_security_config.xml <<EOF
 EOF
 echo "==> Updated network_security_config.xml for ${IP}"
 
-# 5) Restart API on 0.0.0.0:8000 (kill anything listening there first).
-#    Run from inside `api/` so pydantic-settings picks up `api/.env` and not
-#    the project-root `.env` (which uses Prisma's DSN format that psycopg2
-#    rejects).
-echo "==> Restarting API on 0.0.0.0:8000…"
+# 5) Restart Django on 0.0.0.0:8000 (kill anything listening there first).
+#    Run from inside `backend/` so the venv and settings module resolve.
+echo "==> Restarting Django on 0.0.0.0:8000…"
 PIDS="$(lsof -tiTCP:8000 -sTCP:LISTEN 2>/dev/null || true)"
 if [[ -n "${PIDS:-}" ]]; then kill ${PIDS} || true; sleep 2; fi
-( cd api && nohup .venv/bin/uvicorn app.main:app \
-    --reload --host 0.0.0.0 --port 8000 \
+( cd backend && nohup .venv/bin/python manage.py runserver 0.0.0.0:8000 \
     > /tmp/musiky-api.log 2>&1 & disown )
 
 # 6) Restart Next on 0.0.0.0:3000.
 echo "==> Restarting Next on 0.0.0.0:3000…"
 PIDS="$(lsof -tiTCP:3000 -sTCP:LISTEN 2>/dev/null || true)"
 if [[ -n "${PIDS:-}" ]]; then kill ${PIDS} || true; sleep 2; fi
-nohup npm run dev:web -- --hostname 0.0.0.0 --port 3000 \
-    > /tmp/musiky-next.log 2>&1 &
-disown
+( cd frontend && nohup npm run dev -- --hostname 0.0.0.0 --port 3000 \
+    > /tmp/musiky-next.log 2>&1 & disown )
 
 # 7) Wait for both servers to come up before health-checking.
 echo "==> Waiting for servers…"

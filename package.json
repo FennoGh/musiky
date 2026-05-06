@@ -4,43 +4,14 @@
   "private": true,
   "scripts": {
     "dev": "concurrently -n web,api -c cyan,magenta \"npm:dev:web\" \"npm:dev:api\"",
-    "dev:web": "next dev --hostname 0.0.0.0 --port 3000",
-    "dev:api": "cd api && .venv/bin/uvicorn app.main:app --reload --host 0.0.0.0 --port 8000",
-    "build": "next build",
-    "start": "next start",
-    "lint": "eslint",
-    "db:push": "prisma db push",
-    "db:migrate": "prisma migrate dev",
-    "db:seed": "tsx prisma/seed.ts",
-    "db:studio": "prisma studio"
-  },
-  "prisma": {
-    "seed": "tsx prisma/seed.ts"
-  },
-  "dependencies": {
-    "@capacitor/android": "^6.2.1",
-    "@capacitor/core": "^6.2.1",
-    "@prisma/adapter-pg": "^7.6.0",
-    "@prisma/client": "^7.6.0",
-    "dotenv": "^17.4.1",
-    "framer-motion": "^12.31.0",
-    "next": "16.1.5",
-    "pg": "^8.20.0",
-    "react": "19.2.3",
-    "react-dom": "19.2.3"
+    "dev:web": "cd frontend && npm run dev",
+    "dev:api": "cd backend && .venv/bin/python manage.py runserver 0.0.0.0:8000",
+    "db:migrate": "cd backend && .venv/bin/python manage.py migrate",
+    "db:makemigrations": "cd backend && .venv/bin/python manage.py makemigrations",
+    "db:seed": "cd backend && .venv/bin/python manage.py seed_demo",
+    "db:shell": "cd backend && .venv/bin/python manage.py shell"
   },
   "devDependencies": {
-    "@capacitor/cli": "^6.2.1",
-    "@tailwindcss/postcss": "^4",
-    "@types/node": "^20",
-    "@types/react": "^19",
-    "@types/react-dom": "^19",
-    "concurrently": "^9.2.1",
-    "eslint": "^9",
-    "eslint-config-next": "16.1.5",
-    "prisma": "^7.6.0",
-    "tailwindcss": "^4",
-    "tsx": "^4.21.0",
-    "typescript": "^5"
+    "concurrently": "^9.2.1"
   }
 }

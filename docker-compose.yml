@@ -11,7 +11,6 @@ networks:
     driver: bridge
 
 # ── Volumes ───────────────────────────────────────────────────────
-# Named volumes persist across `docker compose down` (unlike anonymous volumes).
 volumes:
   pg_data:
   uploads_data:
@@ -29,7 +28,6 @@ services:
       - pg_data:/var/lib/postgresql/data
     networks:
       - backend
-    # db is NOT exposed to the host — only reachable inside the backend network
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U musiky -d musiky"]
       interval: 10s
@@ -48,15 +46,16 @@ services:
           memory: 100M
     restart: unless-stopped
 
-  # ── FastAPI ────────────────────────────────────────────────────
+  # ── Django + DRF ───────────────────────────────────────────────
   api:
     build:
-      context: .
-      dockerfile: api/Dockerfile
+      context: ./backend
     environment:
-      DATABASE_URL: postgresql+psycopg2://musiky:${DB_PASSWORD}@db:5432/musiky
+      DATABASE_URL: postgres://musiky:${DB_PASSWORD}@db:5432/musiky
+      DJANGO_SECRET_KEY: ${DJANGO_SECRET_KEY}
+      DJANGO_DEBUG: "False"
+      DJANGO_ALLOWED_HOSTS: ${DJANGO_ALLOWED_HOSTS:-localhost,127.0.0.1,174.138.1.11}
       JWT_SECRET: ${JWT_SECRET}
-      JWT_ALGORITHM: HS256
       ACCESS_TOKEN_EXPIRE_MINUTES: 10080
     volumes:
       - uploads_data:/app/uploads
@@ -69,7 +68,7 @@ services:
       db:
         condition: service_healthy
     healthcheck:
-      test: ["CMD-SHELL", "wget -qO- http://127.0.0.1:8000/health || exit 1"]
+      test: ["CMD-SHELL", "curl -fsS http://127.0.0.1:8000/health || exit 1"]
       interval: 15s
       timeout: 5s
       retries: 3
@@ -81,19 +80,17 @@ services:
     deploy:
       resources:
         limits:
-          memory: 180M
+          memory: 220M
         reservations:
-          memory: 100M
+          memory: 120M
     restart: unless-stopped
 
   # ── Next.js ────────────────────────────────────────────────────
   web:
     build:
-      context: .
-      dockerfile: Dockerfile
+      context: ./frontend
     environment:
       NEXT_PUBLIC_API_BASE: http://${SERVER_IP}:8000
-      # Cap Node.js heap to stay within the 180 MB container limit
       NODE_OPTIONS: "--max-old-space-size=160"
     networks:
       - frontend
