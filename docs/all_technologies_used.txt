@@ -1,0 +1,96 @@
+MUSIKY — ALL TECHNOLOGIES USED
+==============================
+
+Last updated: 2026-05-06
+
+
+FRONTEND  (frontend/)
+---------------------
+Language ........... TypeScript 5
+Framework .......... Next.js 16.1.5 (App Router, output: standalone)
+UI library ......... React 19.2.3 + ReactDOM 19.2.3
+Styling ............ Tailwind CSS 4 (+ @tailwindcss/postcss)
+Animations ......... Framer Motion 12.31
+Linting ............ ESLint 9 (eslint-config-next 16.1.5)
+Markup / styling ... HTML, CSS, JS/TSX
+Build tool ......... Next.js (Turbopack)
+
+
+BACKEND  (backend/)
+-------------------
+Language ........... Python 3.10+
+Framework .......... Django 5.1.4
+REST framework ..... Django REST Framework 3.15.2
+Auth (JWT) ......... djangorestframework-simplejwt 5.3.1
+CORS ............... django-cors-headers 4.6.0
+ORM ................ Django ORM (built into Django)
+DB driver .......... psycopg[binary] 3.2.3
+Image library ...... Pillow 11.0
+Env loader ......... python-dotenv 1.0.1
+WSGI server ........ Gunicorn 23.0
+
+
+DATABASE
+--------
+Engine ............. PostgreSQL 15
+Migrations ......... Django migrations (backend/apps/*/migrations/)
+
+
+MOBILE  (android/, capacitor.config.ts)
+---------------------------------------
+Wrapper ............ Capacitor 6.2.1 (@capacitor/core, @capacitor/cli)
+Platform ........... Android (@capacitor/android 6.2.1)
+Build .............. Gradle (Android Gradle Plugin)
+JDK ................ 17
+
+
+CONTAINERS / INFRA
+------------------
+Containers ......... Docker
+Orchestration ...... Docker Compose v3.9
+Images ............. postgres:15-alpine, python:3.12-slim, node:20-alpine
+Reverse proxy ...... nginx (production VPS)
+OS (production) .... Debian 12
+Hosting ............ DigitalOcean droplet (1 vCPU / 512 MB RAM)
+
+
+DEV TOOLING
+-----------
+Process runner ..... concurrently 9.2.1 (root npm script: dev)
+Node ............... 20+
+Python venv ........ python3 -m venv (stdlib)
+Pip ................ stdlib pip
+Linting ............ ESLint (frontend), Django system check (backend)
+
+
+OPS SCRIPTS  (infra/)
+---------------------
+Shell .............. Bash (init_server.sh, deploy.sh, port_audit.sh, cost_monitor.sh)
+Python ............. backup.py (pg_dump + tar), logs_collect.py
+Load testing ....... Locust (locustfile.py)
+
+
+PROJECT LAYOUT
+--------------
+musiky/
+  frontend/        Next.js + React + TS + Tailwind  (port 3000)
+  backend/         Django + DRF + SimpleJWT          (port 8000)
+  android/         Capacitor Android shell
+  bin/             dev-mobile.sh (LAN-IP-aware launcher)
+  infra/           Server bootstrap + deploy scripts
+  docs/            ERD + this file
+  docker-compose.yml
+  capacitor.config.ts
+  .env / .env.example
+  README.md
+
+
+HOW TO RUN  (local)
+-------------------
+1.  cp .env.example .env       (then edit DB credentials)
+2.  cd backend && python3 -m venv .venv && .venv/bin/pip install -r requirements.txt
+3.  cd ../frontend && npm install
+4.  cd .. && npm install        (root concurrently)
+5.  npm run db:migrate
+6.  npm run db:seed
+7.  npm run dev                 (web on :3000, api on :8000)
