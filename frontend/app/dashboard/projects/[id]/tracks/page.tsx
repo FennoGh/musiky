@@ -99,6 +99,15 @@ export default function TracksPage() {
     const audioRef = useRef<HTMLAudioElement | null>(null)
     const [playingId, setPlayingId] = useState<string | null>(null)
 
+    const [editingId, setEditingId] = useState<string | null>(null)
+    const [editTitle, setEditTitle] = useState('')
+    const [editVersion, setEditVersion] = useState('1')
+    const [editSubmitting, setEditSubmitting] = useState(false)
+    const [editError, setEditError] = useState<string | null>(null)
+    const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null)
+    const [deletingId, setDeletingId] = useState<string | null>(null)
+    const [rowError, setRowError] = useState<string | null>(null)
+
     useEffect(() => {
         if (!getToken()) {
             router.replace('/login')
@@ -181,6 +190,78 @@ export default function TracksPage() {
         a.play()
             .then(() => setPlayingId(track.id))
             .catch(() => setPlayingId(null))
+    }
+
+    function startEdit(t: Track) {
+        setEditingId(t.id)
+        setEditTitle(t.title)
+        setEditVersion(String(t.version))
+        setEditError(null)
+        setConfirmDeleteId(null)
+        setRowError(null)
+    }
+
+    function cancelEdit() {
+        setEditingId(null)
+        setEditError(null)
+    }
+
+    async function saveEdit(id: string) {
+        const title = editTitle.trim()
+        const ver = Number(editVersion) || 1
+        if (!title) {
+            setEditError('Title is required')
+            return
+        }
+        if (ver < 1) {
+            setEditError('Version must be at least 1')
+            return
+        }
+        setEditSubmitting(true)
+        setEditError(null)
+        try {
+            const updated = await apiFetch<Track>(
+                `/projects/${projectId}/tracks/${id}`,
+                {
+                    method: 'PATCH',
+                    body: JSON.stringify({ title, version: ver }),
+                }
+            )
+            setTracks((prev) => prev.map((t) => (t.id === id ? updated : t)))
+            setEditingId(null)
+        } catch (err) {
+            if (err instanceof ApiError && err.status === 401) {
+                router.replace('/login')
+                return
+            }
+            setEditError(err instanceof Error ? err.message : 'Could not save')
+        } finally {
+            setEditSubmitting(false)
+        }
+    }
+
+    async function deleteRow(id: string) {
+        setDeletingId(id)
+        setRowError(null)
+        try {
+            await apiFetch<void>(`/projects/${projectId}/tracks/${id}`, {
+                method: 'DELETE',
+            })
+            if (playingId === id) {
+                audioRef.current?.pause()
+                setPlayingId(null)
+            }
+            setTracks((prev) => prev.filter((t) => t.id !== id))
+            setConfirmDeleteId(null)
+        } catch (err) {
+            if (err instanceof ApiError && err.status === 401) {
+                router.replace('/login')
+                return
+            }
+            setRowError(err instanceof Error ? err.message : 'Could not delete')
+        } finally {
+            setDeletingId(null)
+        }
     }
 
     async function handleUpload(e: React.FormEvent) {
@@ -420,6 +501,61 @@ export default function TracksPage() {
                             <div className="border border-[#1A1A1A]/10 divide-y divide-[#1A1A1A]/10">
                                 {tracks.map((t) => {
                                     const isPlaying = playingId === t.id
+                                    const isEditing = editingId === t.id
+                                    const isConfirmingDelete = confirmDeleteId === t.id
+
+                                    if (isEditing) {
+                                        return (
+                                            <div
+                                                key={t.id}
+                                                className="px-5 py-4 bg-[#1A1A1A]/[0.02]"
+                                            >
+                                                <div className="flex items-center gap-3 flex-wrap">
+                                                    <span className="font-mono text-[9px] tracking-[0.3em] uppercase text-[#1A1A1A]/55 shrink-0">
+                                                        Edit
+                                                    </span>
+                                                    <input
+                                                        type="text"
+                                                        value={editTitle}
+                                                        onChange={(e) => setEditTitle(e.target.value)}
+                                                        disabled={editSubmitting}
+                                                        placeholder="Title"
+                                                        className="flex-1 min-w-[140px] bg-transparent border-b border-[#1A1A1A]/30 focus:border-[#1A1A1A] outline-none py-1 font-mono text-sm font-bold text-[#1A1A1A] placeholder:text-[#1A1A1A]/30 transition-colors disabled:opacity-50"
+                                                    />
+                                                    <input
+                                                        type="number"
+                                                        min={1}
+                                                        value={editVersion}
+                                                        onChange={(e) => setEditVersion(e.target.value)}
+                                                        disabled={editSubmitting}
+                                                        className="w-16 bg-transparent border-b border-[#1A1A1A]/30 focus:border-[#1A1A1A] outline-none py-1 font-mono text-sm font-bold text-[#1A1A1A] transition-colors disabled:opacity-50"
+                                                    />
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => saveEdit(t.id)}
+                                                        disabled={editSubmitting}
+                                                        className="font-mono text-[10px] tracking-[0.2em] uppercase px-3 py-1 bg-[#1A1A1A] text-[#F5F1E8] hover:bg-[#8C7A6B] transition-colors disabled:opacity-40"
+                                                    >
+                                                        {editSubmitting ? '…' : 'Save'}
+                                                    </button>
+                                                    <button
+                                                        type="button"
+                                                        onClick={cancelEdit}
+                                                        disabled={editSubmitting}
+                                                        className="font-mono text-[10px] tracking-[0.2em] uppercase px-3 py-1 border border-[#1A1A1A]/30 hover:bg-[#1A1A1A] hover:text-[#F5F1E8] transition-colors disabled:opacity-40"
+                                                    >
+                                                        Cancel
+                                                    </button>
+                                                </div>
+                                                {editError && (
+                                                    <p className="font-mono text-[9px] tracking-wider uppercase text-[#8C7A6B] mt-2">
+                                                        {editError}
+                                                    </p>
+                                                )}
+                                            </div>
+                                        )
+                                    }
+
                                     return (
                                         <div
                                             key={t.id}
@@ -464,17 +600,72 @@ export default function TracksPage() {
                                                     </p>
                                                 </div>
                                             </div>
-                                            <div className="flex items-center gap-5 shrink-0 text-[#1A1A1A]/60">
+                                            <div className="flex items-center gap-3 sm:gap-5 shrink-0 text-[#1A1A1A]/60">
                                                 <span className="font-mono text-[10px]">
                                                     {formatDuration(t.duration)}
                                                 </span>
                                                 <span className="font-mono text-[10px] hidden sm:inline">
                                                     {formatDate(t.uploadedAt)}
                                                 </span>
+                                                {project.isOwner && (
+                                                    isConfirmingDelete ? (
+                                                        <div className="flex items-center gap-1.5">
+                                                            <button
+                                                                type="button"
+                                                                onClick={() => deleteRow(t.id)}
+                                                                disabled={deletingId === t.id}
+                                                                className="font-mono text-[9px] tracking-[0.2em] uppercase px-2 py-1 bg-[#8C7A6B] text-[#F5F1E8] hover:bg-[#1A1A1A] transition-colors disabled:opacity-40"
+                                                            >
+                                                                {deletingId === t.id ? '…' : 'Confirm'}
+                                                            </button>
+                                                            <button
+                                                                type="button"
+                                                                onClick={() => {
+                                                                    setConfirmDeleteId(null)
+                                                                    setRowError(null)
+                                                                }}
+                                                                disabled={deletingId === t.id}
+                                                                className="font-mono text-[9px] tracking-[0.2em] uppercase px-2 py-1 border border-[#1A1A1A]/20 text-[#1A1A1A]/55 hover:text-[#1A1A1A] hover:border-[#1A1A1A]/40 transition-colors"
+                                                            >
+                                                                Cancel
+                                                            </button>
+                                                        </div>
+                                                    ) : (
+                                                        <div className="flex items-center gap-1.5">
+                                                            <button
+                                                                type="button"
+                                                                onClick={() => startEdit(t)}
+                                                                aria-label="Edit"
+                                                                className="font-mono text-[9px] tracking-[0.2em] uppercase px-2 py-1 border border-[#1A1A1A]/15 text-[#1A1A1A]/55 hover:text-[#1A1A1A] hover:border-[#1A1A1A]/40 transition-colors"
+                                                            >
+                                                                Edit
+                                                            </button>
+                                                            <button
+                                                                type="button"
+                                                                onClick={() => {
+                                                                    setConfirmDeleteId(t.id)
+                                                                    setRowError(null)
+                                                                }}
+                                                                aria-label="Delete"
+                                                                className="font-mono text-[10px] leading-none px-2 py-1 border border-[#1A1A1A]/15 text-[#1A1A1A]/55 hover:text-[#8C7A6B] hover:border-[#8C7A6B]/50 transition-colors"
+                                                            >
+                                                                ×
+                                                            </button>
+                                                        </div>
+                                                    )
+                                                )}
                                             </div>
                                         </div>
                                     )
                                 })}
+                                {rowError && (
+                                    <div className="flex items-center gap-3 px-5 py-3 border-t border-[#1A1A1A]/10 bg-[#8C7A6B]/[0.06]">
+                                        <div className="w-1 h-1 bg-[#8C7A6B] animate-pulse-dot rounded-full" />
+                                        <p className="font-mono text-[9px] tracking-wider uppercase text-[#1A1A1A]/85">
+                                            {rowError}
+                                        </p>
+                                    </div>
+                                )}
                             </div>
                         )}
                     </motion.section>

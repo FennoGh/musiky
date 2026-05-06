@@ -216,6 +216,16 @@ export default function ProjectDetailPage() {
     const [tab, setTab] = useState<Tab>('overview')
     const [statusUpdating, setStatusUpdating] = useState(false)
 
+    const [editOpen, setEditOpen] = useState(false)
+    const [editTitle, setEditTitle] = useState('')
+    const [editCoverFile, setEditCoverFile] = useState<File | null>(null)
+    const [editCoverPreview, setEditCoverPreview] = useState<string | null>(null)
+    const [editSubmitting, setEditSubmitting] = useState(false)
+    const [editError, setEditError] = useState<string | null>(null)
+    const [confirmDelete, setConfirmDelete] = useState(false)
+    const [deleting, setDeleting] = useState(false)
+    const [deleteError, setDeleteError] = useState<string | null>(null)
+
     const audioRef = useRef<HTMLAudioElement | null>(null)
     const [playingTrackId, setPlayingTrackId] = useState<string | null>(null)
 
@@ -340,6 +350,90 @@ export default function ProjectDetailPage() {
         }
     }
 
+    useEffect(() => {
+        if (!editCoverFile) {
+            setEditCoverPreview(null)
+            return
+        }
+        const url = URL.createObjectURL(editCoverFile)
+        setEditCoverPreview(url)
+        return () => URL.revokeObjectURL(url)
+    }, [editCoverFile])
+
+    function openEdit() {
+        if (!project) return
+        setEditTitle(project.title)
+        setEditCoverFile(null)
+        setEditError(null)
+        setEditOpen(true)
+    }
+
+    function closeEdit() {
+        setEditOpen(false)
+        setEditError(null)
+    }
+
+    async function submitEdit() {
+        if (!project) return
+        const title = editTitle.trim()
+        if (!title) {
+            setEditError('Title is required')
+            return
+        }
+        setEditSubmitting(true)
+        setEditError(null)
+        try {
+            let coverUrl: string | undefined
+            if (editCoverFile) {
+                const fd = new FormData()
+                fd.append('file', editCoverFile)
+                const uploaded = await apiFetch<{ url: string }>('/uploads/cover', {
+                    method: 'POST',
+                    body: fd,
+                })
+                coverUrl = uploaded.url
+            }
+            const body: Record<string, unknown> = {}
+            if (title !== project.title) body.title = title
+            if (coverUrl !== undefined) body.coverUrl = coverUrl
+            if (Object.keys(body).length === 0) {
+                setEditOpen(false)
+                return
+            }
+            const updated = await apiFetch<Project>(`/projects/${projectId}`, {
+                method: 'PATCH',
+                body: JSON.stringify(body),
+            })
+            setProject(updated)
+            setEditOpen(false)
+        } catch (err) {
+            if (err instanceof ApiError && err.status === 401) {
+                router.replace('/login')
+                return
+            }
+            setEditError(err instanceof Error ? err.message : 'Could not save')
+        } finally {
+            setEditSubmitting(false)
+        }
+    }
+
+    async function handleDelete() {
+        setDeleting(true)
+        setDeleteError(null)
+        try {
+            await apiFetch<void>(`/projects/${projectId}`, { method: 'DELETE' })
+            router.replace('/dashboard')
+        } catch (err) {
+            if (err instanceof ApiError && err.status === 401) {
+                router.replace('/login')
+                return
+            }
+            setDeleteError(err instanceof Error ? err.message : 'Could not delete')
+            setDeleting(false)
+            setConfirmDelete(false)
+        }
+    }
+
     if (loading) {
         return (
             <div className="min-h-screen bg-[#F5F1E8] flex items-center justify-center">
@@ -447,32 +541,84 @@ export default function ProjectDetailPage() {
                             className="flex items-center gap-3 shrink-0"
                         >
                             {project.isOwner ? (
-                                <select
-                                    value={project.status}
-                                    onChange={(e) =>
-                                        handleStatusChange(e.target.value as ProjectStatus)
-                                    }
-                                    disabled={statusUpdating}
-                                    className={`appearance-none cursor-pointer font-mono text-[9px] tracking-[0.2em] uppercase border px-3 py-1 pr-6 bg-transparent transition-colors outline-none ${
-                                        project.status === 'LIVE'
-                                            ? 'border-emerald-500/30 text-emerald-600 bg-emerald-50/50'
-                                            : project.status === 'READY'
-                                              ? 'border-amber-400/30 text-amber-600 bg-amber-50/50'
-                                              : project.status === 'ARCHIVED'
-                                                ? 'border-[#1A1A1A]/10 text-[#1A1A1A]/40'
-                                                : 'border-[#1A1A1A]/20 text-[#1A1A1A]/80'
-                                    } ${statusUpdating ? 'opacity-50' : ''}`}
-                                    style={{
-                                        backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='8' height='5' viewBox='0 0 8 5'%3E%3Cpath d='M0 0l4 5 4-5z' fill='%231A1A1A' opacity='0.3'/%3E%3C/svg%3E")`,
-                                        backgroundRepeat: 'no-repeat',
-                                        backgroundPosition: 'right 8px center',
-                                    }}
-                                >
-                                    <option value="DRAFT">Draft</option>
-                                    <option value="READY">Ready</option>
-                                    <option value="LIVE">Live</option>
-                                    <option value="ARCHIVED">Archived</option>
-                                </select>
+                                <>
+                                    <select
+                                        value={project.status}
+                                        onChange={(e) =>
+                                            handleStatusChange(e.target.value as ProjectStatus)
+                                        }
+                                        disabled={statusUpdating}
+                                        className={`appearance-none cursor-pointer font-mono text-[9px] tracking-[0.2em] uppercase border px-3 py-1 pr-6 bg-transparent transition-colors outline-none ${
+                                            project.status === 'LIVE'
+                                                ? 'border-emerald-500/30 text-emerald-600 bg-emerald-50/50'
+                                                : project.status === 'READY'
+                                                  ? 'border-amber-400/30 text-amber-600 bg-amber-50/50'
+                                                  : project.status === 'ARCHIVED'
+                                                    ? 'border-[#1A1A1A]/10 text-[#1A1A1A]/40'
+                                                    : 'border-[#1A1A1A]/20 text-[#1A1A1A]/80'
+                                        } ${statusUpdating ? 'opacity-50' : ''}`}
+                                        style={{
+                                            backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='8' height='5' viewBox='0 0 8 5'%3E%3Cpath d='M0 0l4 5 4-5z' fill='%231A1A1A' opacity='0.3'/%3E%3C/svg%3E")`,
+                                            backgroundRepeat: 'no-repeat',
+                                            backgroundPosition: 'right 8px center',
+                                        }}
+                                    >
+                                        <option value="DRAFT">Draft</option>
+                                        <option value="READY">Ready</option>
+                                        <option value="LIVE">Live</option>
+                                        <option value="ARCHIVED">Archived</option>
+                                    </select>
+                                    {project.status === 'LIVE' ? (
+                                        <span
+                                            className="font-mono text-[9px] tracking-[0.2em] uppercase border border-[#1A1A1A]/15 text-[#1A1A1A]/40 px-3 py-1"
+                                            title="Set status off LIVE to edit or delete"
+                                        >
+                                            Locked while LIVE
+                                        </span>
+                                    ) : confirmDelete ? (
+                                        <div className="flex items-center gap-1.5">
+                                            <button
+                                                type="button"
+                                                onClick={handleDelete}
+                                                disabled={deleting}
+                                                className="font-mono text-[9px] tracking-[0.2em] uppercase px-3 py-1 bg-[#8C7A6B] text-[#F5F1E8] hover:bg-[#1A1A1A] transition-colors disabled:opacity-40"
+                                            >
+                                                {deleting ? '…' : 'Confirm delete'}
+                                            </button>
+                                            <button
+                                                type="button"
+                                                onClick={() => {
+                                                    setConfirmDelete(false)
+                                                    setDeleteError(null)
+                                                }}
+                                                disabled={deleting}
+                                                className="font-mono text-[9px] tracking-[0.2em] uppercase px-3 py-1 border border-[#1A1A1A]/20 text-[#1A1A1A]/55 hover:text-[#1A1A1A] hover:border-[#1A1A1A]/40 transition-colors"
+                                            >
+                                                Cancel
+                                            </button>
+                                        </div>
+                                    ) : (
+                                        <div className="flex items-center gap-1.5">
+                                            <button
+                                                type="button"
+                                                onClick={openEdit}
+                                                className="font-mono text-[9px] tracking-[0.2em] uppercase px-3 py-1 border border-[#1A1A1A]/20 text-[#1A1A1A]/70 hover:text-[#1A1A1A] hover:border-[#1A1A1A]/40 transition-colors"
+                                            >
+                                                Edit
+                                            </button>
+                                            <button
+                                                type="button"
+                                                onClick={() => {
+                                                    setConfirmDelete(true)
+                                                    setDeleteError(null)
+                                                }}
+                                                className="font-mono text-[9px] tracking-[0.2em] uppercase px-3 py-1 border border-[#1A1A1A]/20 text-[#1A1A1A]/70 hover:text-[#8C7A6B] hover:border-[#8C7A6B]/50 transition-colors"
+                                            >
+                                                Delete
+                                            </button>
+                                        </div>
+                                    )}
+                                </>
                             ) : (
                                 <>
                                     <span
@@ -501,6 +647,18 @@ export default function ProjectDetailPage() {
                             </span>
                         </motion.div>
                     </div>
+                    {deleteError && (
+                        <motion.div
+                            initial={{ opacity: 0 }}
+                            animate={{ opacity: 1 }}
+                            className="mt-6 flex items-center gap-3 px-4 py-3 border border-[#8C7A6B]/40 bg-[#8C7A6B]/[0.06]"
+                        >
+                            <div className="w-1 h-1 bg-[#8C7A6B] animate-pulse-dot rounded-full" />
+                            <p className="font-mono text-[10px] tracking-wider uppercase text-[#1A1A1A]/85">
+                                {deleteError}
+                            </p>
+                        </motion.div>
+                    )}
                 </section>
 
                 {/* KPI strip */}
@@ -965,6 +1123,153 @@ export default function ProjectDetailPage() {
                     )}
                 </motion.section>
             </main>
+
+            {editOpen && project && (
+                <div
+                    className="fixed inset-0 z-50 flex items-center justify-center px-4 bg-[#1A1A1A]/60 backdrop-blur-sm"
+                    onClick={(e) => {
+                        if (e.target === e.currentTarget && !editSubmitting) closeEdit()
+                    }}
+                >
+                    <motion.div
+                        initial={{ opacity: 0, y: 8 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ duration: 0.2 }}
+                        className="w-full max-w-md bg-[#F5F1E8] border border-[#1A1A1A]/15 p-6 sm:p-8"
+                    >
+                        <p className="font-mono text-[9px] tracking-[0.3em] uppercase text-[#1A1A1A]/55 mb-2">
+                            Project settings
+                        </p>
+                        <h3 className="font-mono text-2xl font-bold tracking-tight mb-6">
+                            Edit project
+                        </h3>
+
+                        <div className="space-y-6">
+                            <div>
+                                <label
+                                    htmlFor="editTitle"
+                                    className="block font-mono text-[9px] tracking-[0.3em] uppercase text-[#1A1A1A]/70 mb-2"
+                                >
+                                    Title
+                                </label>
+                                <input
+                                    id="editTitle"
+                                    type="text"
+                                    value={editTitle}
+                                    onChange={(e) => setEditTitle(e.target.value)}
+                                    disabled={editSubmitting}
+                                    className="w-full bg-transparent border-b border-[#1A1A1A]/20 focus:border-[#1A1A1A] outline-none py-2 font-mono text-sm text-[#1A1A1A] transition-colors disabled:opacity-50"
+                                />
+                            </div>
+
+                            <div>
+                                <label
+                                    htmlFor="editCover"
+                                    className="block font-mono text-[9px] tracking-[0.3em] uppercase text-[#1A1A1A]/70 mb-2"
+                                >
+                                    Cover image{' '}
+                                    <span className="text-[#1A1A1A]/40 normal-case tracking-normal">
+                                        (optional)
+                                    </span>
+                                </label>
+                                <label
+                                    htmlFor="editCover"
+                                    className="block border border-dashed border-[#1A1A1A]/25 hover:border-[#1A1A1A]/55 transition-colors cursor-pointer"
+                                >
+                                    {editCoverFile && editCoverPreview ? (
+                                        <div className="flex items-center gap-3 p-3">
+                                            {/* eslint-disable-next-line @next/next/no-img-element */}
+                                            <img
+                                                src={editCoverPreview}
+                                                alt=""
+                                                className="w-14 h-14 object-cover bg-[#1A1A1A]/5"
+                                            />
+                                            <div className="min-w-0 flex-1">
+                                                <p className="font-mono text-[11px] text-[#1A1A1A]/85 truncate">
+                                                    {editCoverFile.name}
+                                                </p>
+                                                <button
+                                                    type="button"
+                                                    onClick={(e) => {
+                                                        e.preventDefault()
+                                                        setEditCoverFile(null)
+                                                    }}
+                                                    className="font-mono text-[9px] tracking-[0.2em] uppercase text-[#1A1A1A]/45 hover:text-[#1A1A1A] mt-1 transition-colors"
+                                                >
+                                                    Remove
+                                                </button>
+                                            </div>
+                                        </div>
+                                    ) : (
+                                        <div className="flex items-center gap-3 p-3">
+                                            <div className="w-14 h-14 shrink-0 bg-[#1A1A1A]/[0.06] flex items-center justify-center">
+                                                {project.coverUrl ? (
+                                                    // eslint-disable-next-line @next/next/no-img-element
+                                                    <img
+                                                        src={apiAsset(project.coverUrl) ?? ''}
+                                                        alt=""
+                                                        className="w-full h-full object-cover"
+                                                    />
+                                                ) : (
+                                                    <span className="font-mono text-base font-bold text-[#1A1A1A]/30">
+                                                        {project.title.charAt(0).toUpperCase()}
+                                                    </span>
+                                                )}
+                                            </div>
+                                            <div className="min-w-0">
+                                                <p className="font-mono text-[10px] tracking-[0.2em] uppercase text-[#1A1A1A]/55">
+                                                    Click to replace
+                                                </p>
+                                                <p className="font-mono text-[9px] text-[#1A1A1A]/35 mt-1">
+                                                    PNG, JPG, WEBP · up to 8 MB
+                                                </p>
+                                            </div>
+                                        </div>
+                                    )}
+                                    <input
+                                        id="editCover"
+                                        type="file"
+                                        accept="image/*"
+                                        onChange={(e) =>
+                                            setEditCoverFile(e.target.files?.[0] ?? null)
+                                        }
+                                        disabled={editSubmitting}
+                                        className="hidden"
+                                    />
+                                </label>
+                            </div>
+
+                            {editError && (
+                                <div className="flex items-center gap-3 px-3 py-2.5 border border-[#1A1A1A]/20">
+                                    <div className="w-1 h-1 bg-[#8C7A6B] animate-pulse-dot rounded-full" />
+                                    <p className="font-mono text-[9px] tracking-wider uppercase text-[#1A1A1A]/85">
+                                        {editError}
+                                    </p>
+                                </div>
+                            )}
+
+                            <div className="flex items-center gap-2 pt-2">
+                                <button
+                                    type="button"
+                                    onClick={submitEdit}
+                                    disabled={editSubmitting}
+                                    className="font-mono text-[10px] tracking-[0.2em] uppercase px-4 py-2.5 bg-[#1A1A1A] text-[#F5F1E8] hover:bg-[#8C7A6B] transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+                                >
+                                    {editSubmitting ? 'Saving…' : 'Save changes →'}
+                                </button>
+                                <button
+                                    type="button"
+                                    onClick={closeEdit}
+                                    disabled={editSubmitting}
+                                    className="font-mono text-[10px] tracking-[0.2em] uppercase px-4 py-2.5 border border-[#1A1A1A]/30 hover:bg-[#1A1A1A] hover:text-[#F5F1E8] transition-colors disabled:opacity-40"
+                                >
+                                    Cancel
+                                </button>
+                            </div>
+                        </div>
+                    </motion.div>
+                </div>
+            )}
         </div>
     )
 }

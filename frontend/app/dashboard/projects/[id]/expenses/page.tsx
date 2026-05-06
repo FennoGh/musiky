@@ -86,6 +86,17 @@ export default function ExpensesPage() {
 
     const [filter, setFilter] = useState<ExpenseCategory | 'ALL'>('ALL')
 
+    const [editingId, setEditingId] = useState<string | null>(null)
+    const [editCategory, setEditCategory] = useState<ExpenseCategory>('PRODUCTION')
+    const [editAmount, setEditAmount] = useState('')
+    const [editCurrency, setEditCurrency] = useState('USD')
+    const [editDescription, setEditDescription] = useState('')
+    const [editSubmitting, setEditSubmitting] = useState(false)
+    const [editError, setEditError] = useState<string | null>(null)
+    const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null)
+    const [deletingId, setDeletingId] = useState<string | null>(null)
+    const [rowError, setRowError] = useState<string | null>(null)
+
     useEffect(() => {
         if (!getToken()) {
             router.replace('/login')
@@ -160,6 +171,81 @@ export default function ExpensesPage() {
         })
         return topCat ? { cat: topCat, amt: topAmt } : null
     }, [byCategory])
+
+    function startEdit(ex: Expense) {
+        setEditingId(ex.id)
+        setEditCategory(ex.category)
+        setEditAmount(String(ex.amount))
+        setEditCurrency(ex.currency)
+        setEditDescription(ex.description ?? '')
+        setEditError(null)
+        setConfirmDeleteId(null)
+        setRowError(null)
+    }
+
+    function cancelEdit() {
+        setEditingId(null)
+        setEditError(null)
+    }
+
+    async function saveEdit(id: string) {
+        const amt = Number(editAmount)
+        if (!Number.isFinite(amt) || amt <= 0) {
+            setEditError('Amount must be greater than 0')
+            return
+        }
+        const cur = editCurrency.trim().toUpperCase()
+        if (cur.length !== 3) {
+            setEditError('Currency must be a 3-letter ISO code')
+            return
+        }
+        setEditSubmitting(true)
+        setEditError(null)
+        try {
+            const updated = await apiFetch<Expense>(
+                `/projects/${projectId}/expenses/${id}`,
+                {
+                    method: 'PATCH',
+                    body: JSON.stringify({
+                        category: editCategory,
+                        amount: amt,
+                        currency: cur,
+                        description: editDescription.trim() || null,
+                    }),
+                }
+            )
+            setExpenses((prev) => prev.map((e) => (e.id === id ? updated : e)))
+            setEditingId(null)
+        } catch (err) {
+            if (err instanceof ApiError && err.status === 401) {
+                router.replace('/login')
+                return
+            }
+            setEditError(err instanceof Error ? err.message : 'Could not save')
+        } finally {
+            setEditSubmitting(false)
+        }
+    }
+
+    async function deleteRow(id: string) {
+        setDeletingId(id)
+        setRowError(null)
+        try {
+            await apiFetch<void>(`/projects/${projectId}/expenses/${id}`, {
+                method: 'DELETE',
+            })
+            setExpenses((prev) => prev.filter((e) => e.id !== id))
+            setConfirmDeleteId(null)
+        } catch (err) {
+            if (err instanceof ApiError && err.status === 401) {
+                router.replace('/login')
+                return
+            }
+            setRowError(err instanceof Error ? err.message : 'Could not delete')
+        } finally {
+            setDeletingId(null)
+        }
+    }
 
     async function handleLog(e: React.FormEvent) {
         e.preventDefault()
@@ -460,27 +546,171 @@ export default function ExpensesPage() {
                             </div>
                         ) : (
                             <div className="border border-[#1A1A1A]/10 divide-y divide-[#1A1A1A]/10">
-                                {visible.map((e) => (
-                                    <div
-                                        key={e.id}
-                                        className="px-5 py-4 flex items-center justify-between gap-4"
-                                    >
-                                        <div className="flex items-center gap-4 min-w-0">
-                                            <StatusPill>{e.category}</StatusPill>
-                                            <div className="min-w-0">
-                                                <p className="font-mono text-[11px] text-[#1A1A1A]/85 truncate">
-                                                    {e.description ?? '—'}
+                                {visible.map((ex) => {
+                                    const isEditing = editingId === ex.id
+                                    const isConfirmingDelete = confirmDeleteId === ex.id
+
+                                    if (isEditing) {
+                                        return (
+                                            <div
+                                                key={ex.id}
+                                                className="px-5 py-4 bg-[#1A1A1A]/[0.02] space-y-3"
+                                            >
+                                                <p className="font-mono text-[9px] tracking-[0.3em] uppercase text-[#1A1A1A]/55">
+                                                    Edit entry
                                                 </p>
-                                                <p className="font-mono text-[9px] text-[#1A1A1A]/45 mt-0.5">
-                                                    {formatDate(e.spentAt)}
+                                                <div className="flex items-center gap-3 flex-wrap">
+                                                    <select
+                                                        value={editCategory}
+                                                        onChange={(e) =>
+                                                            setEditCategory(
+                                                                e.target.value as ExpenseCategory
+                                                            )
+                                                        }
+                                                        disabled={editSubmitting}
+                                                        className="bg-transparent border-b border-[#1A1A1A]/30 focus:border-[#1A1A1A] outline-none py-1 font-mono text-xs text-[#1A1A1A] transition-colors disabled:opacity-50 appearance-none cursor-pointer"
+                                                    >
+                                                        {CATEGORIES.map((c) => (
+                                                            <option key={c} value={c}>
+                                                                {c}
+                                                            </option>
+                                                        ))}
+                                                    </select>
+                                                    <input
+                                                        type="number"
+                                                        min={0}
+                                                        step={0.01}
+                                                        value={editAmount}
+                                                        onChange={(e) => setEditAmount(e.target.value)}
+                                                        disabled={editSubmitting}
+                                                        className="w-28 bg-transparent border-b border-[#1A1A1A]/30 focus:border-[#1A1A1A] outline-none py-1 font-mono text-sm font-bold text-[#1A1A1A] transition-colors disabled:opacity-50"
+                                                    />
+                                                    <input
+                                                        type="text"
+                                                        value={editCurrency}
+                                                        onChange={(e) =>
+                                                            setEditCurrency(e.target.value.toUpperCase())
+                                                        }
+                                                        disabled={editSubmitting}
+                                                        maxLength={3}
+                                                        className="w-12 bg-transparent border-b border-[#1A1A1A]/30 focus:border-[#1A1A1A] outline-none py-1 font-mono text-sm font-bold text-[#1A1A1A] uppercase transition-colors disabled:opacity-50"
+                                                    />
+                                                </div>
+                                                <input
+                                                    type="text"
+                                                    value={editDescription}
+                                                    onChange={(e) => setEditDescription(e.target.value)}
+                                                    disabled={editSubmitting}
+                                                    placeholder="Description"
+                                                    maxLength={200}
+                                                    className="w-full bg-transparent border-b border-[#1A1A1A]/30 focus:border-[#1A1A1A] outline-none py-1 font-mono text-xs text-[#1A1A1A] placeholder:text-[#1A1A1A]/30 transition-colors disabled:opacity-50"
+                                                />
+                                                <div className="flex items-center gap-2">
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => saveEdit(ex.id)}
+                                                        disabled={editSubmitting}
+                                                        className="font-mono text-[10px] tracking-[0.2em] uppercase px-3 py-1 bg-[#1A1A1A] text-[#F5F1E8] hover:bg-[#8C7A6B] transition-colors disabled:opacity-40"
+                                                    >
+                                                        {editSubmitting ? '…' : 'Save'}
+                                                    </button>
+                                                    <button
+                                                        type="button"
+                                                        onClick={cancelEdit}
+                                                        disabled={editSubmitting}
+                                                        className="font-mono text-[10px] tracking-[0.2em] uppercase px-3 py-1 border border-[#1A1A1A]/30 hover:bg-[#1A1A1A] hover:text-[#F5F1E8] transition-colors disabled:opacity-40"
+                                                    >
+                                                        Cancel
+                                                    </button>
+                                                </div>
+                                                {editError && (
+                                                    <p className="font-mono text-[9px] tracking-wider uppercase text-[#8C7A6B]">
+                                                        {editError}
+                                                    </p>
+                                                )}
+                                            </div>
+                                        )
+                                    }
+
+                                    return (
+                                        <div
+                                            key={ex.id}
+                                            className="px-5 py-4 flex items-center justify-between gap-4"
+                                        >
+                                            <div className="flex items-center gap-4 min-w-0">
+                                                <StatusPill>{ex.category}</StatusPill>
+                                                <div className="min-w-0">
+                                                    <p className="font-mono text-[11px] text-[#1A1A1A]/85 truncate">
+                                                        {ex.description ?? '—'}
+                                                    </p>
+                                                    <p className="font-mono text-[9px] text-[#1A1A1A]/45 mt-0.5">
+                                                        {formatDate(ex.spentAt)}
+                                                    </p>
+                                                </div>
+                                            </div>
+                                            <div className="flex items-center gap-3 sm:gap-4 shrink-0">
+                                                <p className="font-mono text-sm font-bold text-rose-500">
+                                                    −{formatMoney(ex.amount, ex.currency)}
                                                 </p>
+                                                {project.isOwner && (
+                                                    isConfirmingDelete ? (
+                                                        <div className="flex items-center gap-1.5">
+                                                            <button
+                                                                type="button"
+                                                                onClick={() => deleteRow(ex.id)}
+                                                                disabled={deletingId === ex.id}
+                                                                className="font-mono text-[9px] tracking-[0.2em] uppercase px-2 py-1 bg-[#8C7A6B] text-[#F5F1E8] hover:bg-[#1A1A1A] transition-colors disabled:opacity-40"
+                                                            >
+                                                                {deletingId === ex.id ? '…' : 'Confirm'}
+                                                            </button>
+                                                            <button
+                                                                type="button"
+                                                                onClick={() => {
+                                                                    setConfirmDeleteId(null)
+                                                                    setRowError(null)
+                                                                }}
+                                                                disabled={deletingId === ex.id}
+                                                                className="font-mono text-[9px] tracking-[0.2em] uppercase px-2 py-1 border border-[#1A1A1A]/20 text-[#1A1A1A]/55 hover:text-[#1A1A1A] hover:border-[#1A1A1A]/40 transition-colors"
+                                                            >
+                                                                Cancel
+                                                            </button>
+                                                        </div>
+                                                    ) : (
+                                                        <div className="flex items-center gap-1.5">
+                                                            <button
+                                                                type="button"
+                                                                onClick={() => startEdit(ex)}
+                                                                aria-label="Edit"
+                                                                className="font-mono text-[9px] tracking-[0.2em] uppercase px-2 py-1 border border-[#1A1A1A]/15 text-[#1A1A1A]/55 hover:text-[#1A1A1A] hover:border-[#1A1A1A]/40 transition-colors"
+                                                            >
+                                                                Edit
+                                                            </button>
+                                                            <button
+                                                                type="button"
+                                                                onClick={() => {
+                                                                    setConfirmDeleteId(ex.id)
+                                                                    setRowError(null)
+                                                                }}
+                                                                aria-label="Delete"
+                                                                className="font-mono text-[10px] leading-none px-2 py-1 border border-[#1A1A1A]/15 text-[#1A1A1A]/55 hover:text-[#8C7A6B] hover:border-[#8C7A6B]/50 transition-colors"
+                                                            >
+                                                                ×
+                                                            </button>
+                                                        </div>
+                                                    )
+                                                )}
                                             </div>
                                         </div>
-                                        <p className="font-mono text-sm font-bold shrink-0 text-rose-500">
-                                            −{formatMoney(e.amount, e.currency)}
+                                    )
+                                })}
+                                {rowError && (
+                                    <div className="flex items-center gap-3 px-5 py-3 bg-[#8C7A6B]/[0.06]">
+                                        <div className="w-1 h-1 bg-[#8C7A6B] animate-pulse-dot rounded-full" />
+                                        <p className="font-mono text-[9px] tracking-wider uppercase text-[#1A1A1A]/85">
+                                            {rowError}
                                         </p>
                                     </div>
-                                ))}
+                                )}
                                 <div className="flex items-center justify-between px-5 py-3 bg-[#1A1A1A]/[0.03]">
                                     <p className="font-mono text-[9px] tracking-[0.2em] uppercase text-[#1A1A1A]/55">
                                         {filter === 'ALL' ? 'Total' : `${filter} total`}

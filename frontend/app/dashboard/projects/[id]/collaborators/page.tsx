@@ -190,16 +190,19 @@ export default function CollaboratorsPage() {
         if (!Number.isFinite(newPct) || newPct < 0 || newPct > 100) return
 
         try {
-            const updated = await apiFetch<Collaborator>(
+            await apiFetch<Collaborator>(
                 `/projects/${projectId}/collaborators/${collabId}`,
                 {
                     method: 'PATCH',
                     body: JSON.stringify({ splitPct: newPct }),
                 }
             )
-            setCollaborators((prev) =>
-                prev.map((c) => (c.id === collabId ? updated : c))
+            // Refetch — the backend rebalances the owner row, so a single-row
+            // local update would leave the owner's split stale on screen.
+            const fresh = await apiFetch<Collaborator[]>(
+                `/projects/${projectId}/collaborators`
             )
+            setCollaborators(fresh)
         } catch (err) {
             if (err instanceof ApiError && err.status === 401) {
                 router.replace('/login')
@@ -219,7 +222,11 @@ export default function CollaboratorsPage() {
                 `/projects/${projectId}/collaborators/${collabId}`,
                 { method: 'DELETE' }
             )
-            setCollaborators((prev) => prev.filter((c) => c.id !== collabId))
+            // Refetch — the backend gives the freed % back to the owner.
+            const fresh = await apiFetch<Collaborator[]>(
+                `/projects/${projectId}/collaborators`
+            )
+            setCollaborators(fresh)
         } catch (err) {
             if (err instanceof ApiError && err.status === 401) {
                 router.replace('/login')
@@ -422,7 +429,7 @@ export default function CollaboratorsPage() {
                                                 </div>
                                             </div>
                                             <div className="flex items-center gap-5 shrink-0">
-                                                {project.isOwner && editingId === c.id ? (
+                                                {project.isOwner && !isOwner && editingId === c.id ? (
                                                     <input
                                                         type="number"
                                                         min={0}
@@ -438,16 +445,23 @@ export default function CollaboratorsPage() {
                                                         autoFocus
                                                         className="w-14 bg-transparent border-b border-[#1A1A1A] outline-none py-0 font-mono text-base font-bold text-[#1A1A1A] text-right"
                                                     />
-                                                ) : project.isOwner ? (
+                                                ) : project.isOwner && !isOwner ? (
                                                     <button
                                                         onClick={() => { setEditingId(c.id); setEditSplit(Number(c.splitPct).toFixed(0)) }}
                                                         className="font-mono text-base font-bold hover:text-[#8C7A6B] transition-colors cursor-pointer"
-                                                        title="Click to edit"
+                                                        title="Click to edit. Freed % returns to owner; extra % comes from owner."
                                                     >
                                                         {Number(c.splitPct).toFixed(0)}%
                                                     </button>
                                                 ) : (
-                                                    <span className="font-mono text-base font-bold">
+                                                    <span
+                                                        className="font-mono text-base font-bold"
+                                                        title={
+                                                            isOwner
+                                                                ? 'Auto-balanced — edit a collaborator to shift this'
+                                                                : undefined
+                                                        }
+                                                    >
                                                         {Number(c.splitPct).toFixed(0)}%
                                                     </span>
                                                 )}

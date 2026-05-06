@@ -1,5 +1,6 @@
 'use client'
 
+import Link from 'next/link'
 import { useEffect, useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 
@@ -192,18 +193,29 @@ export default function Pricing() {
                                     )}
                                 </div>
 
-                                <button
-                                    onClick={() => {
-                                        if (plan.contactSales) setSalesOpen(true)
-                                    }}
-                                    className={`w-full py-4 text-sm font-medium tracking-wide transition-colors duration-200 mb-8 ${
-                                        plan.highlighted
-                                            ? 'bg-[#1A1A1A] text-[#F5F1E8] hover:bg-[#8C7A6B]'
-                                            : 'bg-[#F5F1E8] text-[#1A1A1A] hover:bg-[#8C7A6B] hover:text-[#F5F1E8]'
-                                    }`}
-                                >
-                                    {plan.cta}
-                                </button>
+                                {plan.contactSales ? (
+                                    <button
+                                        onClick={() => setSalesOpen(true)}
+                                        className={`w-full py-4 text-sm font-medium tracking-wide transition-colors duration-200 mb-8 ${
+                                            plan.highlighted
+                                                ? 'bg-[#1A1A1A] text-[#F5F1E8] hover:bg-[#8C7A6B]'
+                                                : 'bg-[#F5F1E8] text-[#1A1A1A] hover:bg-[#8C7A6B] hover:text-[#F5F1E8]'
+                                        }`}
+                                    >
+                                        {plan.cta}
+                                    </button>
+                                ) : (
+                                    <Link
+                                        href="/register"
+                                        className={`w-full block text-center py-4 text-sm font-medium tracking-wide transition-colors duration-200 mb-8 ${
+                                            plan.highlighted
+                                                ? 'bg-[#1A1A1A] text-[#F5F1E8] hover:bg-[#8C7A6B]'
+                                                : 'bg-[#F5F1E8] text-[#1A1A1A] hover:bg-[#8C7A6B] hover:text-[#F5F1E8]'
+                                        }`}
+                                    >
+                                        {plan.cta}
+                                    </Link>
+                                )}
 
                                 <div className="space-y-3 flex-1">
                                     {plan.features.map((feature, i) => (

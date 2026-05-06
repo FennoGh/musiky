@@ -50,6 +50,21 @@ type Revenue = {
 type Collaborator = {
     id: string
     userId: string | null
+    userName: string | null
+    userEmail: string | null
+    splitPct: string
+}
+
+type ProjectPayout = {
+    id: string
+    projectId: string
+    revenueId: string
+    userId: string
+    userName: string | null
+    userEmail: string | null
+    amount: string
+    status: 'PENDING' | 'PAID'
+    paidAt: string | null
 }
 
 function formatDate(iso: string): string {
@@ -81,6 +96,8 @@ export default function RevenuesPage() {
     const [platforms, setPlatforms] = useState<Platform[]>([])
     const [distributions, setDistributions] = useState<Distribution[]>([])
     const [collaborators, setCollaborators] = useState<Collaborator[]>([])
+    const [payouts, setPayouts] = useState<ProjectPayout[]>([])
+    const [expandedRevenueId, setExpandedRevenueId] = useState<string | null>(null)
     const [loading, setLoading] = useState(true)
     const [error, setError] = useState<string | null>(null)
 
@@ -92,6 +109,18 @@ export default function RevenuesPage() {
     const [submitting, setSubmitting] = useState(false)
     const [formError, setFormError] = useState<string | null>(null)
 
+    const [editingId, setEditingId] = useState<string | null>(null)
+    const [editPlatformId, setEditPlatformId] = useState('')
+    const [editAmount, setEditAmount] = useState('')
+    const [editCurrency, setEditCurrency] = useState('USD')
+    const [editPeriodStart, setEditPeriodStart] = useState('')
+    const [editPeriodEnd, setEditPeriodEnd] = useState('')
+    const [editSubmitting, setEditSubmitting] = useState(false)
+    const [editError, setEditError] = useState<string | null>(null)
+    const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null)
+    const [deletingId, setDeletingId] = useState<string | null>(null)
+    const [rowError, setRowError] = useState<string | null>(null)
+
     useEffect(() => {
         if (!getToken()) {
             router.replace('/login')
@@ -101,7 +130,7 @@ export default function RevenuesPage() {
         let cancelled = false
         ;(async () => {
             try {
-                const [me, prj, revs, plats, dists, cols] = await Promise.all([
+                const [me, prj, revs, plats, dists, cols, pays] = await Promise.all([
                     apiFetch<User>('/me'),
                     apiFetch<Project>(`/projects/${projectId}`),
                     apiFetch<Revenue[]>(`/projects/${projectId}/revenues`),
@@ -112,6 +141,9 @@ export default function RevenuesPage() {
                     apiFetch<Collaborator[]>(
                         `/projects/${projectId}/collaborators`
                     ).catch(() => []),
+                    apiFetch<ProjectPayout[]>(
+                        `/projects/${projectId}/payouts`
+                    ).catch(() => []),
                 ])
                 if (cancelled) return
                 setUser(me)
@@ -120,6 +152,7 @@ export default function RevenuesPage() {
                 setPlatforms(plats)
                 setDistributions(dists)
                 setCollaborators(cols)
+                setPayouts(pays)
                 if (dists.length > 0) {
                     setPlatformId(dists[0].platformId)
                 }
@@ -195,6 +228,123 @@ export default function RevenuesPage() {
 
     const collabCount = collaborators.filter((c) => c.userId).length
 
+    const registeredCollabs = useMemo(
+        () => collaborators.filter((c) => c.userId),
+        [collaborators]
+    )
+
+    const payoutsByRevenue = useMemo(() => {
+        const map = new Map<string, ProjectPayout[]>()
+        payouts.forEach((p) => {
+            const arr = map.get(p.revenueId) ?? []
+            arr.push(p)
+            map.set(p.revenueId, arr)
+        })
+        return map
+    }, [payouts])
+
+    function recipientLabel(p: ProjectPayout): string {
+        return p.userName?.trim() || p.userEmail || 'Unknown'
+    }
+
+    async function refreshPayouts() {
+        try {
+            const fresh = await apiFetch<ProjectPayout[]>(
+                `/projects/${projectId}/payouts`
+            )
+            setPayouts(fresh)
+        } catch {
+            // non-fatal — the page still works without the breakdown
+        }
+    }
+
+    function startEdit(r: Revenue) {
+        setEditingId(r.id)
+        setEditPlatformId(r.platformId)
+        setEditAmount(String(r.amount))
+        setEditCurrency(r.currency)
+        setEditPeriodStart(r.periodStart.slice(0, 10))
+        setEditPeriodEnd(r.periodEnd.slice(0, 10))
+        setEditError(null)
+        setConfirmDeleteId(null)
+        setRowError(null)
+    }
+
+    function cancelEdit() {
+        setEditingId(null)
+        setEditError(null)
+    }
+
+    async function saveEdit(id: string) {
+        const amt = Number(editAmount)
+        if (!Number.isFinite(amt) || amt <= 0) {
+            setEditError('Amount must be greater than 0')
+            return
+        }
+        const cur = editCurrency.trim().toUpperCase()
+        if (cur.length !== 3) {
+            setEditError('Currency must be a 3-letter ISO code')
+            return
+        }
+        if (!editPeriodStart || !editPeriodEnd) {
+            setEditError('Period start and end are required')
+            return
+        }
+        if (new Date(editPeriodStart) > new Date(editPeriodEnd)) {
+            setEditError('Period start must be before end')
+            return
+        }
+        setEditSubmitting(true)
+        setEditError(null)
+        try {
+            const updated = await apiFetch<Revenue>(
+                `/projects/${projectId}/revenues/${id}`,
+                {
+                    method: 'PATCH',
+                    body: JSON.stringify({
+                        platformId: editPlatformId,
+                        amount: amt,
+                        currency: cur,
+                        periodStart: new Date(editPeriodStart).toISOString(),
+                        periodEnd: new Date(editPeriodEnd).toISOString(),
+                    }),
+                }
+            )
+            setRevenues((prev) => prev.map((r) => (r.id === id ? updated : r)))
+            setEditingId(null)
+            void refreshPayouts()
+        } catch (err) {
+            if (err instanceof ApiError && err.status === 401) {
+                router.replace('/login')
+                return
+            }
+            setEditError(err instanceof Error ? err.message : 'Could not save')
+        } finally {
+            setEditSubmitting(false)
+        }
+    }
+
+    async function deleteRow(id: string) {
+        setDeletingId(id)
+        setRowError(null)
+        try {
+            await apiFetch<void>(`/projects/${projectId}/revenues/${id}`, {
+                method: 'DELETE',
+            })
+            setRevenues((prev) => prev.filter((r) => r.id !== id))
+            setPayouts((prev) => prev.filter((p) => p.revenueId !== id))
+            setConfirmDeleteId(null)
+        } catch (err) {
+            if (err instanceof ApiError && err.status === 401) {
+                router.replace('/login')
+                return
+            }
+            setRowError(err instanceof Error ? err.message : 'Could not delete')
+        } finally {
+            setDeletingId(null)
+        }
+    }
+
     async function handleRecord(e: React.FormEvent) {
         e.preventDefault()
         setFormError(null)
@@ -240,6 +390,7 @@ export default function RevenuesPage() {
             })
             setRevenues((prev) => [created, ...prev])
             setAmount('')
+            void refreshPayouts()
         } catch (err) {
             if (err instanceof ApiError && err.status === 401) {
                 router.replace('/login')
@@ -485,28 +636,273 @@ export default function RevenuesPage() {
                             <div className="border border-[#1A1A1A]/10 divide-y divide-[#1A1A1A]/10">
                                 {revenues.map((r) => {
                                     const platform = platformMap.get(r.platformId)
+                                    const isEditing = editingId === r.id
+                                    const isConfirmingDelete = confirmDeleteId === r.id
+
+                                    if (isEditing) {
+                                        return (
+                                            <div
+                                                key={r.id}
+                                                className="px-5 py-4 bg-[#1A1A1A]/[0.02] space-y-3"
+                                            >
+                                                <p className="font-mono text-[9px] tracking-[0.3em] uppercase text-[#1A1A1A]/55">
+                                                    Edit entry
+                                                </p>
+                                                <div className="flex items-center gap-3 flex-wrap">
+                                                    <select
+                                                        value={editPlatformId}
+                                                        onChange={(e) => setEditPlatformId(e.target.value)}
+                                                        disabled={editSubmitting}
+                                                        className="bg-transparent border-b border-[#1A1A1A]/30 focus:border-[#1A1A1A] outline-none py-1 font-mono text-xs text-[#1A1A1A] transition-colors disabled:opacity-50 appearance-none cursor-pointer"
+                                                    >
+                                                        {distributedPlatforms.map((p) => (
+                                                            <option key={p.id} value={p.id}>
+                                                                {p.name}
+                                                            </option>
+                                                        ))}
+                                                    </select>
+                                                    <input
+                                                        type="number"
+                                                        min={0}
+                                                        step={0.01}
+                                                        value={editAmount}
+                                                        onChange={(e) => setEditAmount(e.target.value)}
+                                                        disabled={editSubmitting}
+                                                        className="w-28 bg-transparent border-b border-[#1A1A1A]/30 focus:border-[#1A1A1A] outline-none py-1 font-mono text-sm font-bold text-[#1A1A1A] transition-colors disabled:opacity-50"
+                                                    />
+                                                    <input
+                                                        type="text"
+                                                        value={editCurrency}
+                                                        onChange={(e) =>
+                                                            setEditCurrency(e.target.value.toUpperCase())
+                                                        }
+                                                        disabled={editSubmitting}
+                                                        maxLength={3}
+                                                        className="w-12 bg-transparent border-b border-[#1A1A1A]/30 focus:border-[#1A1A1A] outline-none py-1 font-mono text-sm font-bold text-[#1A1A1A] uppercase transition-colors disabled:opacity-50"
+                                                    />
+                                                </div>
+                                                <div className="flex items-center gap-3 flex-wrap">
+                                                    <input
+                                                        type="date"
+                                                        value={editPeriodStart}
+                                                        onChange={(e) => setEditPeriodStart(e.target.value)}
+                                                        disabled={editSubmitting}
+                                                        className="bg-transparent border-b border-[#1A1A1A]/30 focus:border-[#1A1A1A] outline-none py-1 font-mono text-xs text-[#1A1A1A] transition-colors disabled:opacity-50"
+                                                    />
+                                                    <span className="font-mono text-[10px] text-[#1A1A1A]/40">→</span>
+                                                    <input
+                                                        type="date"
+                                                        value={editPeriodEnd}
+                                                        onChange={(e) => setEditPeriodEnd(e.target.value)}
+                                                        disabled={editSubmitting}
+                                                        className="bg-transparent border-b border-[#1A1A1A]/30 focus:border-[#1A1A1A] outline-none py-1 font-mono text-xs text-[#1A1A1A] transition-colors disabled:opacity-50"
+                                                    />
+                                                </div>
+                                                <p className="font-mono text-[9px] tracking-wider text-[#1A1A1A]/55 leading-relaxed">
+                                                    Changing the amount rebuilds all PENDING payouts. Blocked if any payout is already PAID.
+                                                </p>
+                                                <div className="flex items-center gap-2">
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => saveEdit(r.id)}
+                                                        disabled={editSubmitting}
+                                                        className="font-mono text-[10px] tracking-[0.2em] uppercase px-3 py-1 bg-[#1A1A1A] text-[#F5F1E8] hover:bg-[#8C7A6B] transition-colors disabled:opacity-40"
+                                                    >
+                                                        {editSubmitting ? '…' : 'Save'}
+                                                    </button>
+                                                    <button
+                                                        type="button"
+                                                        onClick={cancelEdit}
+                                                        disabled={editSubmitting}
+                                                        className="font-mono text-[10px] tracking-[0.2em] uppercase px-3 py-1 border border-[#1A1A1A]/30 hover:bg-[#1A1A1A] hover:text-[#F5F1E8] transition-colors disabled:opacity-40"
+                                                    >
+                                                        Cancel
+                                                    </button>
+                                                </div>
+                                                {editError && (
+                                                    <p className="font-mono text-[9px] tracking-wider uppercase text-[#8C7A6B]">
+                                                        {editError}
+                                                    </p>
+                                                )}
+                                            </div>
+                                        )
+                                    }
+
+                                    const rowPayouts = payoutsByRevenue.get(r.id) ?? []
+                                    const isExpanded = expandedRevenueId === r.id
+
                                     return (
-                                        <div
-                                            key={r.id}
-                                            className="px-5 py-4 flex items-center justify-between gap-4"
-                                        >
-                                            <div className="flex items-center gap-4 min-w-0">
-                                                <div className="min-w-0">
-                                                    <p className="font-mono text-sm font-bold truncate">
-                                                        {platform?.name ?? 'Unknown'}
+                                        <div key={r.id}>
+                                            <div className="px-5 py-4 flex items-center justify-between gap-4">
+                                                <div className="flex items-center gap-3 min-w-0">
+                                                    <button
+                                                        type="button"
+                                                        onClick={() =>
+                                                            setExpandedRevenueId(
+                                                                isExpanded ? null : r.id
+                                                            )
+                                                        }
+                                                        aria-label={
+                                                            isExpanded
+                                                                ? 'Hide payouts'
+                                                                : 'Show payouts'
+                                                        }
+                                                        disabled={rowPayouts.length === 0}
+                                                        className={`font-mono text-[10px] leading-none w-5 h-5 border flex items-center justify-center transition-colors shrink-0 ${
+                                                            rowPayouts.length === 0
+                                                                ? 'border-[#1A1A1A]/10 text-[#1A1A1A]/20 cursor-not-allowed'
+                                                                : isExpanded
+                                                                  ? 'bg-[#1A1A1A] text-[#F5F1E8] border-[#1A1A1A]'
+                                                                  : 'border-[#1A1A1A]/25 text-[#1A1A1A]/55 hover:border-[#1A1A1A] hover:text-[#1A1A1A]'
+                                                        }`}
+                                                    >
+                                                        {isExpanded ? '▾' : '▸'}
+                                                    </button>
+                                                    <div className="min-w-0">
+                                                        <p className="font-mono text-sm font-bold truncate">
+                                                            {platform?.name ?? 'Unknown'}
+                                                        </p>
+                                                        <p className="font-mono text-[10px] text-[#1A1A1A]/55 mt-0.5 truncate">
+                                                            {formatDate(r.periodStart)} →{' '}
+                                                            {formatDate(r.periodEnd)}
+                                                            {rowPayouts.length > 0 && (
+                                                                <span className="ml-2 text-[#1A1A1A]/40">
+                                                                    · {rowPayouts.length}{' '}
+                                                                    {rowPayouts.length === 1
+                                                                        ? 'transfer'
+                                                                        : 'transfers'}
+                                                                </span>
+                                                            )}
+                                                        </p>
+                                                    </div>
+                                                </div>
+                                                <div className="flex items-center gap-3 sm:gap-4 shrink-0">
+                                                    <p className="font-mono text-sm font-bold text-emerald-600">
+                                                        +{formatMoney(r.amount, r.currency)}
                                                     </p>
-                                                    <p className="font-mono text-[10px] text-[#1A1A1A]/55 mt-0.5 truncate">
-                                                        {formatDate(r.periodStart)} →{' '}
-                                                        {formatDate(r.periodEnd)}
-                                                    </p>
+                                                    {project.isOwner && (
+                                                        isConfirmingDelete ? (
+                                                            <div className="flex items-center gap-1.5">
+                                                                <button
+                                                                    type="button"
+                                                                    onClick={() => deleteRow(r.id)}
+                                                                    disabled={deletingId === r.id}
+                                                                    className="font-mono text-[9px] tracking-[0.2em] uppercase px-2 py-1 bg-[#8C7A6B] text-[#F5F1E8] hover:bg-[#1A1A1A] transition-colors disabled:opacity-40"
+                                                                >
+                                                                    {deletingId === r.id ? '…' : 'Confirm'}
+                                                                </button>
+                                                                <button
+                                                                    type="button"
+                                                                    onClick={() => {
+                                                                        setConfirmDeleteId(null)
+                                                                        setRowError(null)
+                                                                    }}
+                                                                    disabled={deletingId === r.id}
+                                                                    className="font-mono text-[9px] tracking-[0.2em] uppercase px-2 py-1 border border-[#1A1A1A]/20 text-[#1A1A1A]/55 hover:text-[#1A1A1A] hover:border-[#1A1A1A]/40 transition-colors"
+                                                                >
+                                                                    Cancel
+                                                                </button>
+                                                            </div>
+                                                        ) : (
+                                                            <div className="flex items-center gap-1.5">
+                                                                <button
+                                                                    type="button"
+                                                                    onClick={() => startEdit(r)}
+                                                                    aria-label="Edit"
+                                                                    className="font-mono text-[9px] tracking-[0.2em] uppercase px-2 py-1 border border-[#1A1A1A]/15 text-[#1A1A1A]/55 hover:text-[#1A1A1A] hover:border-[#1A1A1A]/40 transition-colors"
+                                                                >
+                                                                    Edit
+                                                                </button>
+                                                                <button
+                                                                    type="button"
+                                                                    onClick={() => {
+                                                                        setConfirmDeleteId(r.id)
+                                                                        setRowError(null)
+                                                                    }}
+                                                                    aria-label="Delete"
+                                                                    className="font-mono text-[10px] leading-none px-2 py-1 border border-[#1A1A1A]/15 text-[#1A1A1A]/55 hover:text-[#8C7A6B] hover:border-[#8C7A6B]/50 transition-colors"
+                                                                >
+                                                                    ×
+                                                                </button>
+                                                            </div>
+                                                        )
+                                                    )}
                                                 </div>
                                             </div>
-                                            <p className="font-mono text-sm font-bold shrink-0 text-emerald-600">
-                                                +{formatMoney(r.amount, r.currency)}
-                                            </p>
+                                            {isExpanded && rowPayouts.length > 0 && (
+                                                <div className="px-5 pb-4 -mt-1 bg-[#1A1A1A]/[0.02]">
+                                                    <p className="font-mono text-[9px] tracking-[0.3em] uppercase text-[#1A1A1A]/55 pt-3 pb-2">
+                                                        {project.isOwner
+                                                            ? 'Owner pays out to'
+                                                            : 'Splits'}
+                                                    </p>
+                                                    <ul className="divide-y divide-[#1A1A1A]/10 border-t border-[#1A1A1A]/10">
+                                                        {rowPayouts.map((p) => {
+                                                            const isPaid = p.status === 'PAID'
+                                                            return (
+                                                                <li
+                                                                    key={p.id}
+                                                                    className="flex items-center justify-between gap-4 py-2"
+                                                                >
+                                                                    <div className="flex items-center gap-3 min-w-0">
+                                                                        <span
+                                                                            className={`inline-flex items-center gap-1.5 font-mono text-[9px] tracking-[0.2em] uppercase border px-2 py-0.5 shrink-0 ${
+                                                                                isPaid
+                                                                                    ? 'border-emerald-500/30 text-emerald-600 bg-emerald-50/50'
+                                                                                    : 'border-amber-400/30 text-amber-600 bg-amber-50/50'
+                                                                            }`}
+                                                                        >
+                                                                            <span
+                                                                                className={`w-1 h-1 rounded-full ${
+                                                                                    isPaid
+                                                                                        ? 'bg-emerald-500'
+                                                                                        : 'bg-amber-500 animate-pulse-dot'
+                                                                                }`}
+                                                                            />
+                                                                            {p.status}
+                                                                        </span>
+                                                                        <div className="min-w-0">
+                                                                            <p className="font-mono text-[12px] font-bold text-[#1A1A1A] truncate">
+                                                                                {recipientLabel(p)}
+                                                                                {p.userId === user?.id && (
+                                                                                    <span className="ml-2 font-normal text-[#1A1A1A]/40">
+                                                                                        (you)
+                                                                                    </span>
+                                                                                )}
+                                                                            </p>
+                                                                            {p.userName && p.userEmail && (
+                                                                                <p className="font-mono text-[9px] text-[#1A1A1A]/45 truncate">
+                                                                                    {p.userEmail}
+                                                                                </p>
+                                                                            )}
+                                                                        </div>
+                                                                    </div>
+                                                                    <p
+                                                                        className={`font-mono text-[12px] font-bold shrink-0 ${
+                                                                            isPaid
+                                                                                ? 'text-emerald-600'
+                                                                                : 'text-amber-600'
+                                                                        }`}
+                                                                    >
+                                                                        {formatMoney(p.amount, r.currency)}
+                                                                    </p>
+                                                                </li>
+                                                            )
+                                                        })}
+                                                    </ul>
+                                                </div>
+                                            )}
                                         </div>
                                     )
                                 })}
+                                {rowError && (
+                                    <div className="flex items-center gap-3 px-5 py-3 bg-[#8C7A6B]/[0.06]">
+                                        <div className="w-1 h-1 bg-[#8C7A6B] animate-pulse-dot rounded-full" />
+                                        <p className="font-mono text-[9px] tracking-wider uppercase text-[#1A1A1A]/85">
+                                            {rowError}
+                                        </p>
+                                    </div>
+                                )}
                                 <div className="flex items-center justify-between px-5 py-3 bg-[#1A1A1A]/[0.03]">
                                     <p className="font-mono text-[9px] tracking-[0.2em] uppercase text-[#1A1A1A]/55">
                                         Total
@@ -658,14 +1054,45 @@ export default function RevenuesPage() {
                                 </div>
 
                                 <div className="border-l-2 border-[#1A1A1A]/15 pl-4 py-1">
-                                    <p className="font-mono text-[9px] tracking-[0.2em] uppercase text-[#1A1A1A]/55 mb-1">
-                                        Auto fan-out
+                                    <p className="font-mono text-[9px] tracking-[0.2em] uppercase text-[#1A1A1A]/55 mb-2">
+                                        Auto fan-out → {collabCount}{' '}
+                                        {collabCount === 1 ? 'transfer' : 'transfers'}
                                     </p>
-                                    <p className="font-mono text-[10px] text-[#1A1A1A]/65 leading-relaxed">
-                                        On submit, {collabCount}{' '}
-                                        {collabCount === 1 ? 'pending payout' : 'pending payouts'}{' '}
-                                        will be created using each collaborator's split %.
-                                    </p>
+                                    {registeredCollabs.length === 0 ? (
+                                        <p className="font-mono text-[10px] text-[#1A1A1A]/65 leading-relaxed">
+                                            Add a registered collaborator to enable payouts.
+                                        </p>
+                                    ) : (
+                                        <ul className="space-y-1">
+                                            {registeredCollabs.map((c) => {
+                                                const pct = Number(c.splitPct)
+                                                const preview =
+                                                    Number(amount) > 0
+                                                        ? formatMoney(
+                                                              (Number(amount) * pct) / 100
+                                                          )
+                                                        : null
+                                                return (
+                                                    <li
+                                                        key={c.id}
+                                                        className="flex items-baseline justify-between gap-3 font-mono text-[10px]"
+                                                    >
+                                                        <span className="text-[#1A1A1A]/85 truncate">
+                                                            {c.userName?.trim() ||
+                                                                c.userEmail ||
+                                                                'Unknown'}
+                                                            <span className="text-[#1A1A1A]/40 ml-1">
+                                                                · {pct.toFixed(0)}%
+                                                            </span>
+                                                        </span>
+                                                        <span className="text-[#1A1A1A]/55 shrink-0">
+                                                            {preview ?? '—'}
+                                                        </span>
+                                                    </li>
+                                                )
+                                            })}
+                                        </ul>
+                                    )}
                                 </div>
 
                                 {formError && (
