@@ -1,0 +1,9 @@
+.venv
+__pycache__
+*.pyc
+*.pyo
+staticfiles
+uploads/*
+!uploads/covers/.gitkeep
+!uploads/audio/.gitkeep
+.env
