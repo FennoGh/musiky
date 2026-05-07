@@ -4,7 +4,7 @@
 
 A web + Android workspace for independent musicians and small teams to manage a release end-to-end: track uploads, royalty splits, distribution status, expense ledger, revenue per platform, and the per-collaborator payouts that follow.
 
-**Live production:** http://174.138.1.11
+**Live production:** http://174.138.1.11:3000
 
 **Demo accounts** (all use password `musiky123`, available after `npm run db:seed`):
 - `main@musiky.dev` — owns 6 demo projects
