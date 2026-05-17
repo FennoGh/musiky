@@ -4,28 +4,30 @@
 
 A web + Android workspace for independent musicians and small teams to manage a release end-to-end: track uploads, royalty splits, distribution status, expense ledger, revenue per platform, and the per-collaborator payouts that follow.
 
-**Live production:** http://174.138.1.11:3000
-
-**Demo accounts** (all use password `musiky123`, available after `npm run db:seed`):
-- `main@musiky.dev` — owns 6 demo projects
-- `mohamed@musiky.dev` — collaborator on *Take Care*, *After Hours*, *Astroworld*
-- `yussef@musiky.dev` — collaborator on *Take Care*, *Ma Bagheek*, *Astroworld*, *Currents*
-
 ---
 
-## 📚 Documentation
+## 📋 Enlaces de corrección
 
-The full project documentation lives in [**`docs/`**](./docs/). Recommended reading depends on what you're trying to do:
+> Todos los diagramas, documentación, presentación, vídeo y documentación de seguimiento (Sprint 8) están en el Drive. El resto de enlaces de revisión se listan abajo.
 
-| Goal | Start with |
+| Elemento | Enlace |
 |---|---|
-| Understand what the project is and why | [docs/Overview.md](./docs/Overview.md) |
-| Run the project locally after cloning | [docs/SetupGuide.md](./docs/SetupGuide.md) |
-| Read engineering details (endpoints, models, deploy) | [docs/TechnicalDocumentation.md](./docs/TechnicalDocumentation.md) |
-| See planned future work | [docs/Roadmap.md](./docs/Roadmap.md) |
-| See the database diagram | [docs/ERD.md](./docs/ERD.md) |
-| See the version-pinned tech stack | [docs/all_technologies_used.txt](./docs/all_technologies_used.txt) |
-| Find your way around | [docs/README.md](./docs/README.md) (index) |
+| Web en producción | http://174.138.1.11:3000/ |
+| GitHub | https://github.com/FennoGh/musiky.git |
+| Documentación | https://drive.google.com/drive/u/0/folders/1QybwQm_nk6mtHty_D9hP5z-eICaLlqNg |
+| Presentación final | https://drive.google.com/drive/u/0/folders/1QybwQm_nk6mtHty_D9hP5z-eICaLlqNg |
+| Vídeo (web y móvil) | https://drive.google.com/drive/u/0/folders/1QybwQm_nk6mtHty_D9hP5z-eICaLlqNg |
+| Documentación de seguimiento (Sprint 8) | https://drive.google.com/drive/u/0/folders/1QybwQm_nk6mtHty_D9hP5z-eICaLlqNg |
+| Diagramas | https://drive.google.com/drive/u/0/folders/1QybwQm_nk6mtHty_D9hP5z-eICaLlqNg |
+| Figma | https://www.figma.com/design/af5KLgAgLaFdRRSw0AgTra/Musiky-Figma?node-id=0-1&t=mkdrav43CB0Y0aVi-1 |
+
+### Cuentas de prueba
+
+| Email | Contraseña | Rol |
+|---|---|---|
+| `main@musiky.dev` | `musiky123` | Propietario (6 proyectos) |
+| `mohamed@musiky.dev` | `musiky123` | Colaborador |
+| `yussef@musiky.dev` | `musiky123` | Colaborador |
 
 ---
 
@@ -48,7 +50,7 @@ cd frontend && npm install && cd ..
 # 4. Root deps (concurrently)
 npm install
 
-# 5. Env (copy template, then edit creds — see SetupGuide.md §A.4)
+# 5. Env (copy template, then edit creds)
 cp .env.example .env
 
 # 6. Schema + demo data
@@ -63,7 +65,7 @@ npm run dev
 | http://localhost:3000 | Web app |
 | http://localhost:8000/health | API health probe |
 
-For the **Docker** flow (`docker compose up --build`) and **Android** mobile launcher (`./bin/dev-mobile.sh`), see [docs/SetupGuide.md](./docs/SetupGuide.md).
+For the **Docker** flow (`docker compose up --build`) and **Android** mobile launcher (`./bin/dev-mobile.sh`), see the SetupGuide in the Drive.
 
 ---
 
@@ -76,7 +78,6 @@ musiky/
 ├── android/          Capacitor 6 (WebView shell)
 ├── bin/              dev-mobile.sh — LAN-IP-aware launcher
 ├── infra/            Server bootstrap + deploy scripts
-├── docs/             Overview, SetupGuide, TechnicalDocumentation, Roadmap, ERD
 ├── capacitor.config.ts
 ├── docker-compose.yml
 ├── package.json      Root concurrently script: `npm run dev`
@@ -131,7 +132,7 @@ Live on a single DigitalOcean droplet via Docker Compose:
 docker compose up -d --build
 ```
 
-The `db`, `api` (Django + Gunicorn), and `web` (Next.js standalone) services are wired together via two isolated bridge networks. See [`infra/`](./infra/) for the rsync-based deploy flow and [docs/TechnicalDocumentation.md §7](./docs/TechnicalDocumentation.md) for production specifics.
+The `db`, `api` (Django + Gunicorn), and `web` (Next.js standalone) services are wired together via two isolated bridge networks. See [`infra/`](./infra/) for the rsync-based deploy flow and the TechnicalDocumentation in the Drive for production specifics.
 
 ---
 
@@ -144,4 +145,4 @@ The `db`, `api` (Django + Gunicorn), and `web` (Next.js standalone) services are
 **Production:** Debian 12 + Docker Compose on DigitalOcean (1 vCPU / 512 MB)
 **Ops:** Bash + Python scripts, Locust for load testing
 
-For the version-pinned full list, see [docs/all_technologies_used.txt](./docs/all_technologies_used.txt).
+For the version-pinned full list, see the documentation in the Drive (link at the top).
