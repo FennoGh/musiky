@@ -5,6 +5,7 @@
 A web + Android workspace for independent musicians and small teams to manage a release end-to-end: track uploads, royalty splits, distribution status, expense ledger, revenue per platform, and the per-collaborator payouts that follow.
 
 ---
+<img width="1024" height="1536" alt="408c2ceb-5abd-4852-a76f-9a54553e8027" src="https://github.com/user-attachments/assets/a485375b-3584-4503-ba6d-e0bbddc04345" />
 
 ## 📋 Enlaces de corrección
 
