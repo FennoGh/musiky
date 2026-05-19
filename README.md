@@ -29,7 +29,7 @@ A web + Android workspace for independent musicians and small teams to manage a 
 | `main@musiky.dev` | `musiky123` | Propietario (6 proyectos) |
 | `mohamed@musiky.dev` | `musiky123` | Colaborador |
 | `yussef@musiky.dev` | `musiky123` | Colaborador |
-
+ 
 ---
 
 ## ⚡ Quickstart (60 seconds, native dev)
